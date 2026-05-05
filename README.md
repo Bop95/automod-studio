@@ -43,6 +43,7 @@ This project is part of the CollabGuard system, designed to improve collaboratio
 
 ## 📂 Project Structure
 
+```
 automod-studio/
 ├── src/
 │ ├── parser/ # YAML ↔ JSON conversion
@@ -53,7 +54,7 @@ automod-studio/
 ├── package.json
 ├── tsconfig.json
 └── README.md
-
+```
 ---
 
 ## 🚀 Getting Started
