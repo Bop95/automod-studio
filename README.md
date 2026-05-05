@@ -43,7 +43,16 @@ This project is part of the CollabGuard system, designed to improve collaboratio
 
 ## 📂 Project Structure
 
-automod-studio/ ├── src/ │ ├── parser/ # YAML ↔ JSON conversion │ ├── rules/ # Rule logic (planned) │ ├── simulator/ # Rule testing (planned) │ ├── types/ # Type definitions │ └── index.ts # Entry point ├── package.json ├── tsconfig.json ├── README.md
+automod-studio/
+├── src/
+│ ├── parser/ # YAML ↔ JSON conversion
+│ ├── rules/ # Rule logic
+│ ├── simulator/ # Rule testing
+│ ├── types/ # Type definitions
+│ └── index.ts # Entry point
+├── package.json
+├── tsconfig.json
+└── README.md
 
 ---
 
@@ -63,11 +72,6 @@ npx ts-node src/index.ts
 
 ---
 
-
 ## 🧠 Architecture
 
 AutoMod YAML ↓ Parser (YAML → JSON) ↓ Rule Engine ↓ Simulator / UI ↓ Deploy back to Reddit
-
-
-
-
