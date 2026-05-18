@@ -2,8 +2,6 @@
 
 A visual editor for Reddit's AutoModerator — built inside Reddit with Devvit.
 
-> Submitted to the [Reddit Mod Tools & Migrated Apps Hackathon](https://devpost.com/software/automod-studio) · May 2026
-
 ---
 
 ## The Problem
@@ -128,8 +126,8 @@ devvit upload
 
 | Milestone | Status | Description |
 |---|---|---|
-| 1 — Parser | ✅ Done | YAML → JSON parser with conditions/actions/metadata extraction |
-| 2 — Devvit App | ✅ Done | Full visual editor, wiki read/write, rule simulator |
+| 1 — Parser | YAML → JSON parser with conditions/actions/metadata extraction |
+| 2 — Devvit App | Full visual editor, wiki read/write, rule simulator |
 
 ---
 
