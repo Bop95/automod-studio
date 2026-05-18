@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoMod Studio</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a1b; color: #d7dadc; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    .header { background: #1a1a1b; border-bottom: 1px solid #343536; padding: 0 16px; height: 48px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .logo { font-size: 16px; font-weight: 700; color: #ff4500; }
+    .header-sub { font-size: 13px; color: #818384; }
+    .spacer { flex: 1; }
+    .btn { padding: 7px 14px; border-radius: 4px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: background 0.1s, opacity 0.1s; }
+    .btn-primary { background: #ff4500; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #cc3700; }
+    .btn-primary:disabled { background: #4a4a4b; color: #818384; cursor: default; }
+    .btn-secondary { background: #343536; color: #d7dadc; }
+    .btn-secondary:hover:not(:disabled) { background: #404142; }
+    .btn:disabled { cursor: default; }
+    .main { display: flex; flex: 1; overflow: hidden; }
+    .rules-panel { width: 260px; border-right: 1px solid #343536; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+    .rules-header { padding: 10px 14px; font-size: 11px; font-weight: 700; color: #818384; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid #343536; flex-shrink: 0; }
+    .rules-list { flex: 1; overflow-y: auto; }
+    .rule-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #272729; border-left: 3px solid transparent; transition: background 0.1s; }
+    .rule-item:hover { background: #272729; }
+    .rule-item.active { background: #272729; border-left-color: #ff4500; }
+    .rule-name { font-size: 13px; font-weight: 600; color: #d7dadc; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rule-meta { display: flex; align-items: center; gap: 5px; }
+    .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .badge-remove { background: #b61827; color: #fff; }
+    .badge-report { background: #cc8b00; color: #000; }
+    .badge-approve { background: #1a7f37; color: #fff; }
+    .badge-spam { background: #6e40c9; color: #fff; }
+    .badge-filter { background: #1a6ed8; color: #fff; }
+    .badge-none { background: #343536; color: #818384; }
+    .type-label { font-size: 11px; color: #818384; }
+    .add-btn-wrap { padding: 10px; border-top: 1px solid #343536; flex-shrink: 0; }
+    .editor-panel { flex: 1; overflow-y: auto; padding: 20px; }
+    .editor-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #818384; }
+    .editor-empty-icon { font-size: 40px; }
+    .editor-empty-hint { font-size: 12px; }
+    .editor-top { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .editor-title { font-size: 17px; font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .delete-btn { background: transparent; border: 1px solid #b61827; color: #e05c68; padding: 5px 11px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+    .delete-btn:hover { background: #b61827; color: #fff; }
+    .tabs { display: flex; border-bottom: 1px solid #343536; margin-bottom: 16px; }
+    .tab { padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; color: #818384; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.1s; }
+    .tab:hover { color: #d7dadc; }
+    .tab.active { color: #ff4500; border-bottom-color: #ff4500; }
+    .form-section { background: #272729; border-radius: 6px; padding: 14px; margin-bottom: 14px; }
+    .section-title { font-size: 11px; font-weight: 700; color: #818384; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+    .form-row { margin-bottom: 10px; }
+    .form-row:last-child { margin-bottom: 0; }
+    .form-label { display: block; font-size: 12px; font-weight: 600; color: #d7dadc; margin-bottom: 5px; }
+    .form-hint { font-size: 11px; color: #818384; margin-top: 3px; }
+    .form-control { width: 100%; background: #1a1a1b; border: 1px solid #343536; border-radius: 4px; color: #d7dadc; padding: 7px 10px; font-size: 13px; outline: none; transition: border-color 0.1s; font-family: inherit; }
+    .form-control:focus { border-color: #ff4500; }
+    select.form-control { cursor: pointer; }
+    textarea.form-control { resize: vertical; min-height: 72px; line-height: 1.4; }
+    .form-check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .form-check input { accent-color: #ff4500; width: 15px; height: 15px; cursor: pointer; }
+    .form-check span { font-size: 13px; }
+    .raw-area { width: 100%; min-height: 320px; background: #1a1a1b; border: 1px solid #343536; border-radius: 4px; color: #d7dadc; padding: 10px; font-family: 'Courier New', Courier, monospace; font-size: 12px; line-height: 1.5; outline: none; resize: vertical; }
+    .raw-area:focus { border-color: #ff4500; }
+    .raw-hint { font-size: 11px; color: #818384; margin-top: 6px; }
+    .banner { border-radius: 5px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; }
+    .banner-success { background: #1a3d1f; border: 1px solid #1a7f37; color: #4ade80; }
+    .banner-error { background: #3d1a1a; border: 1px solid #b61827; color: #f87171; }
+    .loading-state { height: 100%; display: flex; align-items: center; justify-content: center; color: #818384; font-size: 14px; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #343536; border-radius: 3px; }
+    /* view tabs */
+    .view-tabs { display: flex; gap: 4px; margin-right: 8px; }
+    .view-tab { padding: 5px 12px; border-radius: 4px; border: 1px solid #343536; background: transparent; color: #818384; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .view-tab.active { background: #343536; color: #d7dadc; }
+    /* simulator */
+    .sim-card { background: #272729; border-radius: 8px; padding: 20px; margin-bottom: 16px; max-width: 780px; }
+    .sim-title { font-size: 14px; font-weight: 700; color: #d7dadc; margin-bottom: 16px; }
+    .sim-row { margin-bottom: 14px; }
+    .sim-row:last-child { margin-bottom: 0; }
+    .sim-radio-group { display: flex; gap: 20px; }
+    .sim-radio { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+    .sim-radio input { accent-color: #ff4500; width: 15px; height: 15px; cursor: pointer; }
+    .sim-run-btn { background: #ff4500; color: #fff; border: none; padding: 9px 20px; border-radius: 4px; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .sim-run-btn:hover { background: #cc3700; }
+    .result-card { background: #272729; border-radius: 8px; padding: 16px; margin-bottom: 12px; max-width: 780px; border-left: 4px solid #343536; }
+    .result-card.fires { border-left-color: #b61827; }
+    .result-card.no-match { border-left-color: #343536; opacity: 0.7; }
+    .result-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .result-icon { font-size: 18px; }
+    .result-name { font-size: 14px; font-weight: 700; flex: 1; }
+    .result-action { font-size: 11px; }
+    .result-reasons { list-style: none; padding: 0; margin: 0; }
+    .result-reasons li { font-size: 12px; color: #818384; padding: 2px 0; display: flex; align-items: flex-start; gap: 6px; }
+    .result-reasons li.pass { color: #4ade80; }
+    .result-reasons li.fail { color: #f87171; }
+    .result-reasons li.skip { color: #818384; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <span class="logo">AutoMod Studio</span>
+  <span class="header-sub" id="headerSub"></span>
+  <div class="spacer"></div>
+  <div class="view-tabs">
+    <button class="view-tab active" id="tabEditor">Rules</button>
+    <button class="view-tab" id="tabSimulator">Simulator</button>
+  </div>
+  <button class="btn btn-secondary" id="reloadBtn">Reload</button>
+  <button class="btn btn-primary" id="saveBtn" disabled>Save</button>
+</div>
+
+<div class="main" id="mainArea">
+  <div class="rules-panel">
+    <div class="rules-header">Rules <span id="ruleCount"></span></div>
+    <div class="rules-list" id="ruleList"></div>
+    <div class="add-btn-wrap">
+      <button class="btn btn-secondary" id="addRuleBtn" style="width:100%">+ Add Rule</button>
+    </div>
+  </div>
+  <div class="editor-panel" id="editorPanel">
+    <div class="loading-state">Loading AutoMod rules...</div>
+  </div>
+</div>
+<div id="simulatorArea" style="display:none;flex:1;overflow-y:auto;padding:24px;"></div>
+
+<script src="index.js"></script>
+</body>
+</html>
