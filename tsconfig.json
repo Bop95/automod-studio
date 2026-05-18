@@ -1,36 +1,27 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
     "module": "commonjs",
     "target": "es2020",
+    "lib": ["ES2020"],
     "types": ["node"],
     "esModuleInterop": true,
 
-    // Other Outputs
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
 
-    // Stricter Typechecking Options
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-
-    // Style Options
-    // "noImplicitReturns": true,
-    // "noImplicitOverride": true,
-    // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
-    // "noFallthroughCasesInSwitch": true,
-    // "noPropertyAccessFromIndexSignature": true,
-
-    // Recommended Options
     "strict": true,
-    "jsx": "react-jsx",
+    "noUncheckedIndexedAccess": true,
+
+    "jsx": "react",
+    "jsxFactory": "Devvit.createElement",
+    "jsxFragmentFactory": "Devvit.Fragment",
+
     "isolatedModules": true,
-    "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
-    "skipLibCheck": true,
-  }
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "webroot"]
 }
