@@ -124,8 +124,8 @@ devvit upload
 
 ## Milestones
 
-| Milestone | Status | Description |
-|---|---|---|
+| Milestone | Description |
+|---|---|
 | 1 — Parser | YAML → JSON parser with conditions/actions/metadata extraction |
 | 2 — Devvit App | Full visual editor, wiki read/write, rule simulator |
 
