@@ -110,6 +110,10 @@ const state = {
   theme: localStorage.getItem('cg-theme') || 'light',
   sidebarCollapsed: localStorage.getItem('ams-sidebar-collapsed') === 'true',
   subredditName: 'ModQueueLab',
+  currentUsername: null,
+  canSave: true,
+  wikiRevisions: [],
+  wikiRevisionCache: {},
   notification: null,
   parserWarnings: [],
   sim: {
@@ -478,6 +482,71 @@ function requestRules() {
   sendToDevvit({ type: 'GET_RULES' });
 }
 
+function requestWikiRevisions() {
+  sendToDevvit({ type: 'GET_WIKI_REVISIONS' });
+}
+
+function historyItemKey(source, id) {
+  return source + ':' + id;
+}
+
+function parseHistoryItemKey(key) {
+  if (!key || key.indexOf(':') < 0) return null;
+  const parts = key.split(':');
+  return { source: parts[0], id: parts.slice(1).join(':') };
+}
+
+function getHistoryTimeline() {
+  const items = [];
+  state.wikiRevisions.forEach(function(rev) {
+    items.push({
+      key: historyItemKey('reddit', rev.id),
+      source: 'reddit',
+      id: rev.id,
+      savedAt: rev.date,
+      title: rev.reason || 'Wiki revision',
+      detail: 'Reddit wiki · config/automoderator',
+      author: rev.author || 'unknown',
+      ruleCount: null,
+      rules: state.wikiRevisionCache[rev.id] ? state.wikiRevisionCache[rev.id].rules : null,
+      kind: 'reddit',
+    });
+  });
+  state.history.forEach(function(entry) {
+    items.push({
+      key: historyItemKey('local', entry.id),
+      source: 'local',
+      id: entry.id,
+      savedAt: entry.savedAt,
+      title: entry.title,
+      detail: entry.detail,
+      author: entry.author || 'You',
+      ruleCount: entry.ruleCount,
+      rules: entry.rules,
+      kind: entry.kind,
+    });
+  });
+  items.sort(function(a, b) { return b.savedAt - a.savedAt; });
+  return items;
+}
+
+function getSelectedHistoryItem() {
+  const timeline = getHistoryTimeline();
+  if (!timeline.length) return { item: null, index: -1, timeline: timeline };
+  const key = state.ui.historySelectedId;
+  if (key) {
+    const idx = timeline.findIndex(function(item) { return item.key === key; });
+    if (idx >= 0) return { item: timeline[idx], index: idx, timeline: timeline };
+  }
+  return { item: timeline[0], index: 0, timeline: timeline };
+}
+
+function loadWikiRevisionContent(revisionId) {
+  if (!revisionId) return;
+  if (state.wikiRevisionCache[revisionId]) return;
+  sendToDevvit({ type: 'GET_WIKI_REVISION', revisionId: revisionId });
+}
+
 function handleDevvitMsg(msg) {
   if (msg.type === 'INIT') {
     rulesLoaded = true;
@@ -499,6 +568,8 @@ function handleDevvitMsg(msg) {
       state.notification = null;
     }
     if (msg.subredditName) state.subredditName = msg.subredditName;
+    state.currentUsername = msg.currentUsername || null;
+    state.canSave = msg.canSave !== false;
     state.loading = false;
     if (!state.rules.length) {
       state.view = 'rules';
@@ -517,7 +588,7 @@ function handleDevvitMsg(msg) {
     state.history = loadHistoryFromStorage();
     ensureHistoryBaseline();
     if (state.history.length && !state.ui.historySelectedId) {
-      state.ui.historySelectedId = state.history[0].id;
+      state.ui.historySelectedId = historyItemKey('local', state.history[0].id);
     }
     updateDirtyState();
     applySubredditUI();
@@ -534,9 +605,57 @@ function handleDevvitMsg(msg) {
       title: 'Updated AutoModerator config',
       detail: state.rules.length + ' rule' + (state.rules.length === 1 ? '' : 's') + ' saved to config/automoderator',
       rules: state.rules,
+      author: msg.savedBy || state.currentUsername || 'You',
     });
-    if (entry) state.ui.historySelectedId = entry.id;
+    if (entry) state.ui.historySelectedId = historyItemKey('local', entry.id);
     updateDirtyState();
+    renderShell();
+  }
+  if (msg.type === 'SAVE_WIKI_ERROR') {
+    state.saving = false;
+    notify('error', msg.message || 'Could not save to the subreddit wiki.');
+    updateDirtyState();
+    renderShell();
+  }
+  if (msg.type === 'WIKI_REVISIONS') {
+    state.wikiRevisions = Array.isArray(msg.revisions) ? msg.revisions : [];
+    if (msg.error) {
+      notify('error', 'Could not load Reddit wiki revisions: ' + msg.error);
+    }
+    const timeline = getHistoryTimeline();
+    if (timeline.length && !state.ui.historySelectedId) {
+      state.ui.historySelectedId = timeline[0].key;
+    }
+    if (state.view === 'history' && timeline.length) {
+      const selected = getSelectedHistoryItem();
+      if (selected.item && selected.item.source === 'reddit') {
+        loadWikiRevisionContent(selected.item.id);
+      }
+    }
+    renderShell();
+  }
+  if (msg.type === 'WIKI_REVISION') {
+    const revisionId = msg.revisionId;
+    if (revisionId) {
+      const rules = clone(msg.rules || []);
+      ensureRuleIds(rules);
+      state.wikiRevisionCache[revisionId] = {
+        rules: rules,
+        warnings: Array.isArray(msg.warnings) ? msg.warnings : [],
+      };
+      if (state.view === 'history') renderShell();
+    }
+  }
+  if (msg.type === 'REVERT_SUCCESS') {
+    state.rules = clone(msg.rules || []);
+    ensureRuleIds(state.rules);
+    state.serverRules = clone(state.rules);
+    state.selected = state.rules.length ? 0 : -1;
+    state.dirty = false;
+    state.saving = false;
+    clearDraft();
+    notify('success', 'Wiki reverted on Reddit. Loaded the restored config/automoderator.');
+    requestWikiRevisions();
     renderShell();
   }
   if (msg.type === 'ERROR') {
@@ -575,6 +694,7 @@ function setView(view) {
   if (view === 'builder' && state.rules.length && (state.selected < 0 || !state.rules[state.selected])) {
     state.selected = 0;
   }
+  if (view === 'history') requestWikiRevisions();
   renderShell();
 }
 
@@ -636,6 +756,11 @@ function useTemplate(id) {
 
 function deployRules() {
   if (!state.dirty || state.saving) return;
+  if (!state.canSave) {
+    notify('error', 'You must be signed in as a moderator to save to the subreddit wiki.');
+    renderShell();
+    return;
+  }
   const blockers = validateRulesForDeploy(state.rules);
   if (blockers.length) {
     notify('error', blockers[0]);
@@ -747,22 +872,6 @@ function ensureHistoryBaseline() {
   });
 }
 
-function getHistoryEntryById(id) {
-  for (let i = 0; i < state.history.length; i += 1) {
-    if (state.history[i].id === id) return { entry: state.history[i], index: i };
-  }
-  return { entry: null, index: -1 };
-}
-
-function getSelectedHistoryEntry() {
-  const id = state.ui.historySelectedId;
-  if (id) {
-    const found = getHistoryEntryById(id);
-    if (found.entry) return found;
-  }
-  if (state.history.length) return { entry: state.history[0], index: 0 };
-  return { entry: null, index: -1 };
-}
 
 function formatHistoryTime(ts) {
   if (!ts) return '';
@@ -836,11 +945,13 @@ function diffRulesSnapshot(beforeRules, afterRules) {
   return changes;
 }
 
-function getHistoryDiffForEntry(index) {
-  const entry = state.history[index];
-  if (!entry) return [];
-  const prev = state.history[index + 1];
-  return diffRulesSnapshot(prev ? prev.rules : [], entry.rules);
+function getHistoryDiffForItem(item, timeline, index) {
+  if (!item || !item.rules) return null;
+  const prev = timeline[index + 1];
+  const beforeRules = prev && prev.rules
+    ? prev.rules
+    : (index === timeline.length - 1 ? [] : state.serverRules);
+  return diffRulesSnapshot(beforeRules, item.rules);
 }
 
 function rulesSnapshotToYaml(rules) {
@@ -850,22 +961,43 @@ function rulesSnapshotToYaml(rules) {
 }
 
 function restoreHistoryVersion() {
-  const selected = getSelectedHistoryEntry();
-  const entry = selected.entry;
-  if (!entry) return;
+  const selected = getSelectedHistoryItem();
+  const item = selected.item;
+  if (!item) return;
+  if (!item.rules) {
+    notify('error', 'Revision content is still loading. Select it again in a moment.');
+    renderShell();
+    return;
+  }
+  const count = item.rules.length;
   const ok = window.confirm(
-    'Restore “' + entry.title + '” (' + entry.ruleCount + ' rule' + (entry.ruleCount === 1 ? '' : 's') + ') to the editor?\n\n' +
+    'Restore “' + item.title + '” (' + count + ' rule' + (count === 1 ? '' : 's') + ') to the editor?\n\n' +
     'Your current draft will be replaced. Nothing is sent to Reddit until you Save rule.'
   );
   if (!ok) return;
-  state.rules = clone(entry.rules);
+  state.rules = clone(item.rules);
   ensureRuleIds(state.rules);
   state.selected = state.rules.length ? 0 : -1;
   state.dirty = true;
   markDirty();
-  notify('success', 'Restored version from ' + formatHistoryTime(entry.savedAt) + '. Review and Save rule to update Reddit.');
+  notify('success', 'Restored version from ' + formatHistoryTime(item.savedAt) + '. Review and Save rule to update Reddit.');
   state.view = 'builder';
   renderShell();
+}
+
+function revertWikiRevision() {
+  const selected = getSelectedHistoryItem();
+  const item = selected.item;
+  if (!item || item.source !== 'reddit') return;
+  const ok = window.confirm(
+    'Revert config/automoderator on Reddit to this wiki revision?\n\n' +
+    'This updates the live wiki immediately (not just your local editor).'
+  );
+  if (!ok) return;
+  state.saving = true;
+  notify('success', 'Reverting wiki on Reddit…');
+  renderShell();
+  sendToDevvit({ type: 'REVERT_WIKI', revisionId: item.id });
 }
 
 function loadDraftFromStorage() {
@@ -957,7 +1089,7 @@ function updateDirtyState() {
   const topDeployBtn = document.getElementById('topDeployBtn');
   const topResetBtn = document.getElementById('topResetBtn');
   const topSaveDraftBtn = document.getElementById('topSaveDraftBtn');
-  const canSave = state.dirty && !state.saving;
+  const canSave = state.dirty && !state.saving && state.canSave !== false;
   if (saveBar) saveBar.classList.toggle('visible', canSave && state.view !== 'builder');
   if (topSaveActions) topSaveActions.classList.toggle('visible', false);
   if (topDeployBtn) topDeployBtn.disabled = !canSave;
@@ -1753,31 +1885,42 @@ function renderResult(result) {
   `;
 }
 
-function renderHistoryVersionItem(entry, index) {
-  const selected = getSelectedHistoryEntry();
-  const isSelected = selected.entry && selected.entry.id === entry.id;
+function renderHistoryVersionItem(item, index) {
+  const selected = getSelectedHistoryItem();
+  const isSelected = selected.item && selected.item.key === item.key;
   const isLatest = index === 0;
   const badges = [];
   if (isLatest) badges.push('<span class="version-chip brand">Latest</span>');
-  if (entry.kind === 'baseline') badges.push('<span class="version-chip">Baseline</span>');
-  else if (entry.kind === 'deploy') badges.push('<span class="version-chip">Deploy</span>');
+  if (item.source === 'reddit') badges.push('<span class="version-chip">Reddit</span>');
+  else if (item.kind === 'baseline') badges.push('<span class="version-chip">Baseline</span>');
+  else if (item.kind === 'deploy') badges.push('<span class="version-chip">Deploy</span>');
+
+  const ruleCount = item.ruleCount != null
+    ? item.ruleCount
+    : (item.rules ? item.rules.length : null);
+  const ruleLabel = ruleCount != null
+    ? ruleCount + ' rule' + (ruleCount === 1 ? '' : 's')
+    : 'Loading…';
 
   return `
     <button
       type="button"
       class="version-item ${isSelected ? 'selected' : ''}"
       data-action="selectHistoryVersion"
-      data-id="${h(entry.id)}"
+      data-key="${h(item.key)}"
       aria-current="${isSelected ? 'true' : 'false'}"
     >
       <div class="version-badges">${badges.join('')}</div>
-      <div class="version-title">${h(entry.title)}</div>
-      <div class="version-meta">${h(formatHistoryRelative(entry.savedAt))} · ${entry.ruleCount} rule${entry.ruleCount === 1 ? '' : 's'}</div>
+      <div class="version-title">${h(item.title)}</div>
+      <div class="version-meta">${h(formatHistoryRelative(item.savedAt))} · ${h(ruleLabel)}</div>
     </button>
   `;
 }
 
 function renderHistoryDiffVisual(changes, entry) {
+  if (changes === null) {
+    return '<p class="diff-empty-copy">Loading revision content from Reddit…</p>';
+  }
   if (!changes.length) {
     return `
       <div class="diff-visual diff-visual-neutral">
@@ -1825,63 +1968,89 @@ function renderHistoryDiffYaml(entry) {
 }
 
 function renderHistory() {
-  if (!state.history.length) {
+  const timeline = getHistoryTimeline();
+  if (!timeline.length) {
     return renderEmptyState(
       'No versions yet',
-      'Each Save rule creates a snapshot you can compare and restore in the editor. Reddit wiki revision history is not listed here yet.',
+      'Save a rule or load wiki revisions from Reddit to see history here.',
       'Create new rule',
       'blank',
       { secondaryLabel: 'Go to My rules', secondaryAction: 'goRules' }
     );
   }
 
-  const selected = getSelectedHistoryEntry();
-  const entry = selected.entry;
+  const selected = getSelectedHistoryItem();
+  const item = selected.item;
   const index = selected.index;
-  const changes = getHistoryDiffForEntry(index);
+  const changes = item ? getHistoryDiffForItem(item, timeline, index) : [];
   const diffMode = state.ui.historyDiffMode === 'yaml' ? 'yaml' : 'visual';
-  const diffBody = diffMode === 'yaml'
-    ? renderHistoryDiffYaml(entry)
-    : renderHistoryDiffVisual(changes, entry);
+  const diffBody = !item
+    ? '<p class="diff-empty-copy">Select a version to view changes.</p>'
+    : diffMode === 'yaml' && item.rules
+      ? renderHistoryDiffYaml({ rules: item.rules })
+      : renderHistoryDiffVisual(changes, item);
+
+  const redditCount = state.wikiRevisions.length;
+  const localCount = state.history.length;
+  const calloutHtml = redditCount
+    ? `<div class="history-callout panel panel-pad history-callout-info">
+        ${icon('check-circle')}
+        <div>
+          <strong>Reddit + local snapshots</strong>
+          <p>Reddit wiki revisions (${redditCount}) are loaded from the API. Local entries (${localCount}) are saved in this browser when you use Save rule.</p>
+        </div>
+      </div>`
+    : `<div class="history-callout panel panel-pad">
+        ${icon('alert-triangle')}
+        <div>
+          <strong>Local snapshots</strong>
+          <p>Showing saves from this browser. Reddit wiki revisions could not be loaded or this page is new.</p>
+        </div>
+      </div>`;
+
+  const ruleCountLabel = item && item.rules
+    ? item.rules.length + ' rule' + (item.rules.length === 1 ? '' : 's')
+    : '…';
+
+  const revertBtn = item && item.source === 'reddit'
+    ? `<button type="button" class="btn btn-secondary" data-action="revertWikiRevision" ${state.saving ? 'disabled' : ''}>${icon('refresh')}Revert on Reddit</button>`
+    : '';
 
   return `
     <div class="page-shell history-page">
       <div class="page-heading">
         <h1>Version history</h1>
-        <p>Deploy snapshots from this device. Compare changes, then restore a version to the editor before saving to Reddit.</p>
+        <p>Compare wiki revisions and local saves. Restore to the editor or revert on Reddit when viewing a Reddit revision.</p>
       </div>
-      <div class="history-callout panel panel-pad">
-        ${icon('alert-triangle')}
-        <div>
-          <strong>Local history only</strong>
-          <p>These entries are saved in your browser when you use Save rule. They are not the same as Reddit’s wiki revision log.</p>
-        </div>
-      </div>
+      ${calloutHtml}
       <div class="history-layout">
         <aside class="version-list-card" aria-label="Version list">
           <div class="version-list-head">
-            <span>${state.history.length} version${state.history.length === 1 ? '' : 's'}</span>
+            <span>${timeline.length} version${timeline.length === 1 ? '' : 's'}</span>
             <span>${icon('diff')} Newest first</span>
           </div>
           <div class="version-list-body">
-            ${state.history.map(function(item, i) { return renderHistoryVersionItem(item, i); }).join('')}
+            ${timeline.map(function(entry, i) { return renderHistoryVersionItem(entry, i); }).join('')}
           </div>
         </aside>
         <section class="history-detail" aria-label="Version detail">
           <div class="history-detail-head">
             <div>
-              <h2>${h(entry.title)}</h2>
+              <h2>${h(item.title)}</h2>
               <div class="detail-meta">
-                <span class="tiny-avatar" aria-hidden="true">${h(String(entry.author || 'You').slice(0, 2).toUpperCase())}</span>
-                <span>${h(entry.author || 'You')}</span>
+                <span class="tiny-avatar" aria-hidden="true">${h(String(item.author || 'You').slice(0, 2).toUpperCase())}</span>
+                <span>${h(item.author || 'You')}</span>
                 <span>·</span>
-                <span>${h(formatHistoryTime(entry.savedAt))}</span>
+                <span>${h(formatHistoryTime(item.savedAt))}</span>
                 <span>·</span>
-                <span>${entry.ruleCount} rule${entry.ruleCount === 1 ? '' : 's'}</span>
+                <span>${h(ruleCountLabel)}</span>
               </div>
-              <p class="history-detail-desc">${h(entry.detail)}</p>
+              <p class="history-detail-desc">${h(item.detail)}</p>
             </div>
-            <button type="button" class="btn btn-secondary" data-action="restoreHistoryVersion">${icon('refresh')}Restore to editor</button>
+            <div class="history-detail-actions">
+              <button type="button" class="btn btn-secondary" data-action="restoreHistoryVersion" ${!item.rules || state.saving ? 'disabled' : ''}>${icon('refresh')}Restore to editor</button>
+              ${revertBtn}
+            </div>
           </div>
           <div class="change-card">
             <div class="change-head">
@@ -2039,9 +2208,12 @@ document.addEventListener('click', function(e) {
     renderShell();
   }
   if (action === 'selectHistoryVersion') {
-    state.ui.historySelectedId = el.dataset.id;
+    state.ui.historySelectedId = el.dataset.key;
+    const parsed = parseHistoryItemKey(el.dataset.key);
+    if (parsed && parsed.source === 'reddit') loadWikiRevisionContent(parsed.id);
     renderShell();
   }
+  if (action === 'revertWikiRevision') revertWikiRevision();
   if (action === 'setHistoryDiffTab') {
     state.ui.historyDiffMode = el.dataset.mode === 'yaml' ? 'yaml' : 'visual';
     renderShell();
