@@ -1,7 +1,6 @@
 import { Devvit, useWebView } from "@devvit/public-api";
 import type { JSONObject } from "@devvit/public-api";
 import { parseAutoModeratorYaml } from "./parser/yamlToJson";
-import { serializeRulesToYaml } from "./serializer";
 
 Devvit.configure({
   redditAPI: true,
@@ -49,12 +48,9 @@ Devvit.addCustomPostType({
         }
 
         if (type === "SAVE") {
+          const yamlContent = (msg["yaml"] as string) || "";
           try {
-            const rawRules = (msg["rules"] as JSONObject[] | undefined) ?? [];
             const subreddit = await context.reddit.getCurrentSubreddit();
-            const yamlContent = serializeRulesToYaml(
-              rawRules as Record<string, unknown>[]
-            );
             await context.reddit.updateWikiPage({
               subredditName: subreddit.name,
               page: "config/automoderator",
@@ -63,9 +59,16 @@ Devvit.addCustomPostType({
             });
             await hook.postMessage({ type: "SAVE_SUCCESS" });
           } catch (e) {
+            const errMsg = e instanceof Error ? e.message : String(e);
+            // HTTP 415 in playtest = OAuth token lacks wikiedit scope.
+            // Fix: run `devvit upload` and test the installed (non-playtest) version.
+            const hint = errMsg.includes("415")
+              ? " (HTTP 415 — this subreddit's wiki may be locked, or the app needs to be published via `devvit upload` to get full mod permissions)"
+              : "";
             await hook.postMessage({
-              type: "ERROR",
-              message: e instanceof Error ? e.message : String(e),
+              type: "SAVE_WIKI_ERROR",
+              message: errMsg + hint,
+              yaml: yamlContent,
             });
           }
         }

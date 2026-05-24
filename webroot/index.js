@@ -59,6 +59,12 @@ function yamlVal(v) {
   return s;
 }
 
+// ── YAML serializer (for save) ────────────────────────────────────────────────
+function serializeAllRulesToYaml() {
+  if (!state.rules.length) return '';
+  return state.rules.map(function(rule) { return toYaml(rule); }).join('\n---\n');
+}
+
 // ── Devvit messaging ──────────────────────────────────────────────────────────
 function sendToDevvit(msg) { window.parent.postMessage(msg, '*'); }
 
@@ -90,6 +96,10 @@ function handleDevvitMsg(msg) {
       updateDirtyState();
       renderEditor();
       setTimeout(function() { state.notification = null; renderEditor(); }, 3000);
+      break;
+    case 'SAVE_WIKI_ERROR':
+      state.notification = { type: 'error', text: msg.message || 'Save failed.', yaml: msg.yaml || '' };
+      renderEditor();
       break;
     case 'ERROR':
       state.loading = false;
@@ -125,11 +135,11 @@ document.getElementById('resetBtn').addEventListener('click', function() {
 });
 
 document.getElementById('saveBtn').addEventListener('click', function() {
-  sendToDevvit({ type: 'SAVE', rules: state.rules });
+  sendToDevvit({ type: 'SAVE', yaml: serializeAllRulesToYaml() });
 });
 
 document.getElementById('savePillBtn').addEventListener('click', function() {
-  sendToDevvit({ type: 'SAVE', rules: state.rules });
+  sendToDevvit({ type: 'SAVE', yaml: serializeAllRulesToYaml() });
 });
 
 document.getElementById('addRuleBtn').addEventListener('click', function() {
@@ -382,7 +392,17 @@ function renderEditor() {
   }
   var rule = state.rules[state.selected];
   var i = state.selected;
-  var notifHtml = state.notification ? '<div class="banner banner-' + state.notification.type + '">' + h(state.notification.text) + '</div>' : '';
+  var notifHtml = '';
+  if (state.notification) {
+    notifHtml = '<div class="banner banner-' + state.notification.type + '">' + h(state.notification.text);
+    if (state.notification.yaml) {
+      notifHtml += '<div style="margin-top:8px;display:flex;gap:8px;align-items:center">' +
+        '<button id="copyYamlBtn" style="background:#27272a;border:1px solid #3f3f46;color:#f4f4f5;padding:4px 10px;border-radius:5px;font-size:11px;font-weight:600;font-family:var(--mono);cursor:pointer">Copy YAML</button>' +
+        '<span style="font-size:11px;color:#a1a1aa">Paste to r/subreddit/wiki/config/automoderator</span>' +
+        '</div>';
+    }
+    notifHtml += '</div>';
+  }
   var content;
   if (state.tab === 'yaml') content = renderYamlTab(rule);
   else if (state.tab === 'raw') content = renderRawTab(rule, i);
@@ -636,6 +656,16 @@ document.addEventListener('click', function(e) {
   var action = el.dataset.action;
   var idx = parseInt(el.dataset.index || '-1', 10);
 
+  if (el.id === 'copyYamlBtn') {
+    var yaml = (state.notification && state.notification.yaml) ? state.notification.yaml : serializeAllRulesToYaml();
+    navigator.clipboard.writeText(yaml).then(function() {
+      el.textContent = 'Copied!';
+      setTimeout(function() { el.textContent = 'Copy YAML'; }, 2000);
+    }).catch(function() {
+      el.textContent = 'Copy YAML';
+    });
+    return;
+  }
   if (action === 'selectRule') {
     selectRule(idx);
   } else if (action === 'deleteRule') {
@@ -700,6 +730,40 @@ document.addEventListener('change', function(e) {
     var val  = valEl ? valEl.value : '';
     var val2 = val2El ? val2El.value : '';
     if (val2El) val2El.style.display = op === 'between' ? '' : 'none';
+    var serialized = serializeComparison(op, val, val2);
+    if (cobj) setNestedField(ci, cobj, ckey, serialized);
+    else setField(ci, ckey, serialized || undefined);
+    updateSummaryCard(ci);
+  }
+});
+
+// ── Event delegation — input (real-time dirty + state sync) ──────────────────
+document.addEventListener('input', function(e) {
+  var el = e.target;
+  var action = el.dataset.action;
+  if (!action) return;
+  var i   = parseInt(el.dataset.ruleindex || '-1', 10);
+  var key = el.dataset.key || '';
+  var obj = el.dataset.obj || '';
+
+  if (action === 'setField')                 { setField(i, key, el.value || undefined); updateSummaryCard(i); }
+  else if (action === 'setArrayField')       { setArrayField(i, key, el.value); updateSummaryCard(i); }
+  else if (action === 'setNestedField')      { setNestedField(i, obj, key, el.value); updateSummaryCard(i); }
+  else if (action === 'setNestedArrayField') { setNestedArrayField(i, obj, key, el.value); updateSummaryCard(i); }
+  else if (action === 'setPriority')         { setField(i, 'priority', el.value !== '' ? Number(el.value) : undefined); }
+  else if (action === 'applyRaw')            { applyRaw(i, el.value); }
+  else if (action === 'setComparison') {
+    var container = el.closest('.op-val');
+    if (!container) return;
+    var ci   = parseInt(container.dataset.ruleindex || '-1', 10);
+    var cobj = container.dataset.obj || '';
+    var ckey = container.dataset.key || '';
+    var opEl   = container.querySelector('[data-role="op"]');
+    var valEl  = container.querySelector('[data-role="val"]');
+    var val2El = container.querySelector('[data-role="val2"]');
+    var op   = opEl  ? opEl.value  : '<';
+    var val  = valEl ? valEl.value : '';
+    var val2 = val2El ? val2El.value : '';
     var serialized = serializeComparison(op, val, val2);
     if (cobj) setNestedField(ci, cobj, ckey, serialized);
     else setField(ci, ckey, serialized || undefined);
