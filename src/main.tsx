@@ -37,6 +37,7 @@ Devvit.addCustomPostType({
             const { rules, warnings } = parseAutoModeratorYaml(yamlContent);
             await hook.postMessage({
               type: "INIT",
+              subredditName: subreddit.name,
               rules: rules.map((r) => toJSONObject(r.raw)),
               warnings,
             });

@@ -6,12 +6,12 @@
   <title>AutoMod Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=history-1" />
 </head>
 <body>
   <div class="app-shell" id="appShell">
-    <aside class="sidebar">
-      <div class="brand">
+    <header class="topbar">
+      <div class="topbar-brand">
         <div class="brand-mark" aria-hidden="true">
           <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.4-2.8 8.3-7 10-4.2-1.7-7-5.6-7-10V6l7-3z"/><path d="M9.5 12l1.7 1.7 3.8-4"/></svg>
         </div>
@@ -19,49 +19,50 @@
           <div class="brand-title">AutoMod Studio</div>
           <div class="brand-version">v0.4.2</div>
         </div>
-        <button class="sidebar-toggle" id="sideNavToggle" type="button" title="Collapse sidebar" aria-label="Collapse sidebar">
-          <span class="hamburger-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+      </div>
+      <div class="topbar-separator" aria-hidden="true"></div>
+      <div class="crumbs">
+        <div class="breadcrumb" id="breadcrumb">Build / Templates</div>
+        <div class="page-title" id="pageTitle">Templates</div>
+      </div>
+      <div class="top-actions">
+        <button class="btn btn-primary btn-new" id="newRuleBtn"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New rule</button>
+        <div class="top-separator"></div>
+        <button class="btn btn-ghost icon-btn" title="Notifications"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button>
+        <button class="btn btn-ghost icon-btn" id="themeBtn" title="Toggle theme"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 3v2"/><path d="M12 19v2"/><path d="M5.6 5.6 7 7"/><path d="M17 17l1.4 1.4"/><path d="M3 12h2"/><path d="M19 12h2"/><path d="M5.6 18.4 7 17"/><path d="M17 7l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg></button>
+        <div class="avatar">JM</div>
+        <button class="btn btn-primary" id="deployBtn" disabled style="display:none">Deploy</button>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar-rail-head">
+        <span class="sidebar-rail-label" id="sidebarSubredditLabel">r/ModQueueLab</span>
+        <button class="sidebar-collapse" id="sideNavToggle" type="button" title="Collapse sidebar" aria-label="Collapse sidebar" aria-expanded="true" aria-controls="sidebarNav">
+          <svg class="svg-icon sidebar-collapse-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
       </div>
-      <div class="community">
-        <div class="community-avatar">MQ</div>
-        <div>
-          <div class="community-label">Workspace</div>
-          <div class="community-name" id="communityName">r/ModQueueLab</div>
-          <div class="community-meta">5 mods · public</div>
-        </div>
-        <div class="community-chev"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+      <div class="sidebar-body" id="sidebarNav">
+        <nav class="nav-section" aria-label="Primary">
+          <div class="nav-kicker">Build</div>
+          <button class="nav-item active" data-view="templates" title="Templates"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg></span><span class="nav-label">Templates</span></button>
+          <button class="nav-item" data-view="rules" title="My rules"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></svg></span><span class="nav-label">My rules</span><span class="nav-count" id="rulesNavCount">0</span></button>
+          <button class="nav-item" data-view="simulator" title="Simulator"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M5 21V5"/><path d="M5 5h12l-2 4 2 4H5"/></svg></span><span class="nav-label">Simulator</span></button>
+          <div class="nav-kicker">Monitor</div>
+          <button class="nav-item" data-view="history" title="Version history"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg></span><span class="nav-label">Version history</span><span class="nav-count" id="historyNavCount">0</span></button>
+          <div class="nav-kicker">Workspace</div>
+          <button class="nav-item" data-view="settings" title="Settings"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.8 1.8 0 0 0 .4 2l.1.1a2.1 2.1 0 0 1-3 3l-.1-.1a1.8 1.8 0 0 0-2-.4 1.8 1.8 0 0 0-1.1 1.7V21a2.1 2.1 0 0 1-4.2 0v-.2a1.8 1.8 0 0 0-1.1-1.7 1.8 1.8 0 0 0-2 .4l-.1.1a2.1 2.1 0 0 1-3-3l.1-.1a1.8 1.8 0 0 0 .4-2 1.8 1.8 0 0 0-1.7-1.1H2a2.1 2.1 0 0 1 0-4.2h.2A1.8 1.8 0 0 0 3.9 8a1.8 1.8 0 0 0-.4-2l-.1-.1a2.1 2.1 0 0 1 3-3l.1.1a1.8 1.8 0 0 0 2 .4 1.8 1.8 0 0 0 1.1-1.7V1.5a2.1 2.1 0 0 1 4.2 0v.2a1.8 1.8 0 0 0 1.1 1.7 1.8 1.8 0 0 0 2-.4l.1-.1a2.1 2.1 0 0 1 3 3l-.1.1a1.8 1.8 0 0 0-.4 2 1.8 1.8 0 0 0 1.7 1.1h.2a2.1 2.1 0 0 1 0 4.2h-.2a1.8 1.8 0 0 0-1.7 1.1z"/></svg></span><span class="nav-label">Settings</span></button>
+        </nav>
       </div>
-      <nav class="nav-section" aria-label="Primary">
-        <div class="nav-kicker">Build</div>
-        <button class="nav-item active" data-view="templates" title="Templates"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg></span><span class="nav-label">Templates</span></button>
-        <button class="nav-item" data-view="rules" title="My rules"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></svg></span><span class="nav-label">My rules</span><span class="nav-count" id="rulesNavCount">0</span></button>
-        <button class="nav-item" data-view="simulator" title="Simulator"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M5 21V5"/><path d="M5 5h12l-2 4 2 4H5"/></svg></span><span class="nav-label">Simulator</span></button>
-        <div class="nav-kicker">Monitor</div>
-        <button class="nav-item" data-view="history" title="Version history"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg></span><span class="nav-label">Version history</span><span class="nav-count">14</span></button>
-        <div class="nav-kicker">Workspace</div>
-        <button class="nav-item" data-view="settings" title="Settings"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.8 1.8 0 0 0 .4 2l.1.1a2.1 2.1 0 0 1-3 3l-.1-.1a1.8 1.8 0 0 0-2-.4 1.8 1.8 0 0 0-1.1 1.7V21a2.1 2.1 0 0 1-4.2 0v-.2a1.8 1.8 0 0 0-1.1-1.7 1.8 1.8 0 0 0-2 .4l-.1.1a2.1 2.1 0 0 1-3-3l.1-.1a1.8 1.8 0 0 0 .4-2 1.8 1.8 0 0 0-1.7-1.1H2a2.1 2.1 0 0 1 0-4.2h.2A1.8 1.8 0 0 0 3.9 8a1.8 1.8 0 0 0-.4-2l-.1-.1a2.1 2.1 0 0 1 3-3l.1.1a1.8 1.8 0 0 0 2 .4 1.8 1.8 0 0 0 1.1-1.7V1.5a2.1 2.1 0 0 1 4.2 0v.2a1.8 1.8 0 0 0 1.1 1.7 1.8 1.8 0 0 0 2-.4l.1-.1a2.1 2.1 0 0 1 3 3l-.1.1a1.8 1.8 0 0 0-.4 2 1.8 1.8 0 0 0 1.7 1.1h.2a2.1 2.1 0 0 1 0 4.2h-.2a1.8 1.8 0 0 0-1.7 1.1z"/></svg></span><span class="nav-label">Settings</span></button>
-      </nav>
-      <div class="sidebar-bottom">
-        <button class="btn btn-secondary" id="reloadBtn">Reload from Reddit</button>
-      </div>
+      <footer class="sidebar-footer">
+        <button class="sidebar-reload" id="reloadBtn" type="button">
+          <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7"/><path d="M21 3v6h-6"/><path d="M21 12a9 9 0 0 1-15 6.7"/><path d="M3 21v-6h6"/></svg>
+          <span class="sidebar-reload-label">Reload from Reddit</span>
+        </button>
+      </footer>
     </aside>
 
     <main class="main">
-      <header class="topbar">
-        <div class="crumbs">
-          <div class="breadcrumb" id="breadcrumb">Build / Templates</div>
-          <div class="page-title" id="pageTitle">Templates</div>
-        </div>
-        <div class="top-actions">
-          <button class="btn btn-primary btn-new" id="newRuleBtn"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New rule</button>
-          <div class="top-separator"></div>
-          <button class="btn btn-ghost icon-btn" title="Notifications"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button>
-          <button class="btn btn-ghost icon-btn" id="themeBtn" title="Toggle theme"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 3v2"/><path d="M12 19v2"/><path d="M5.6 5.6 7 7"/><path d="M17 17l1.4 1.4"/><path d="M3 12h2"/><path d="M19 12h2"/><path d="M5.6 18.4 7 17"/><path d="M17 7l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg></button>
-          <div class="avatar">JM</div>
-          <button class="btn btn-primary" id="deployBtn" disabled style="display:none">Deploy</button>
-        </div>
-      </header>
       <section class="content">
         <div class="content-inner">
           <div class="banner" id="banner"></div>
@@ -72,11 +73,12 @@
   </div>
 
   <div class="save-bar" id="saveBar">
-    <div class="save-copy"><span class="save-dot"></span><span>Draft changes ready to deploy</span></div>
-    <button class="btn btn-ghost" id="resetBtn">Reset</button>
-    <button class="btn btn-primary" id="saveBarBtn">Deploy rules</button>
+    <div class="save-copy"><span class="save-dot"></span><span>Unsaved changes on this device</span></div>
+    <button class="btn btn-ghost" id="resetBtn" type="button">Discard</button>
+    <button class="btn btn-secondary" id="saveDraftBtn" type="button">Save draft</button>
+    <button class="btn btn-primary" id="saveBarBtn" type="button">Deploy to Reddit</button>
   </div>
 
-  <script src="index.js?v=automod-figma-templates"></script>
+  <script src="index.js?v=history-1"></script>
 </body>
 </html>
