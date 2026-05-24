@@ -470,10 +470,7 @@ document.addEventListener('keydown', function(e) {
     e.preventDefault();
     next = state.rules.length - 1;
   } else return;
-  if (next !== state.selected) {
-    state.selected = next;
-    renderShell();
-  }
+  if (next !== state.selected) selectBuilderRule(next);
 });
 
 function requestRules() {
@@ -552,6 +549,18 @@ function handleDevvitMsg(msg) {
 }
 
 window.handleDevvitMsg = handleDevvitMsg;
+
+function selectBuilderRule(index) {
+  const next = Number(index);
+  if (Number.isNaN(next) || next < 0 || next >= state.rules.length) return;
+  if (next === state.selected && state.view === 'builder') return;
+  state.selected = next;
+  if (state.view === 'builder') {
+    renderShell();
+    return;
+  }
+  setView('builder');
+}
 
 function setView(view) {
   if (view === state.view) return;
@@ -1970,8 +1979,7 @@ document.addEventListener('click', function(e) {
     renderShell();
   }
   if (action === 'selectRule') {
-    state.selected = Number(el.dataset.index);
-    setView('builder');
+    selectBuilderRule(el.dataset.index);
   }
   if (action === 'useTemplate') useTemplate(el.dataset.template);
   if (action === 'goTemplates') setView('templates');
