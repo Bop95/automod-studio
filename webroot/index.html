@@ -5,399 +5,80 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AutoMod Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    /* ── Design tokens ─────────────────────────────────────── */
-    :root {
-      --bg:        #09090b;
-      --surface:   #18181b;
-      --border:    #27272a;
-      --text:      #f4f4f5;
-      --muted:     #71717a;
-      --z700:      #3f3f46;
-      --z800:      #27272a;
-      --z900:      #18181b;
-      --remove:    #f87171;
-      --report:    #fbbf24;
-      --filter:    #60a5fa;
-      --approve:   #34d399;
-      --spam:      #a78bfa;
-      --accent:    #10b981;
-      --r-lg: 8px;
-      --r-md: 6px;
-      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
-    body {
-      font-family: var(--font);
-      background: var(--bg);
-      color: var(--text);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    ::-webkit-scrollbar { width: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-
-    .app { display: flex; flex: 1; overflow: hidden; }
-
-    /* ── Sidebar ── */
-    .sidebar {
-      width: 280px;
-      flex-shrink: 0;
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      background: var(--bg);
-    }
-
-    .sidebar-head {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-
-    .sidebar-logo { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
-
-    .logo-text { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
-
-    .live-dot { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; flex-shrink: 0; }
-    .live-dot.pulse { animation: pulse 2s infinite; }
-
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-
-    .sidebar-sub { font-size: 11px; color: var(--muted); font-family: var(--mono); }
-
-    .rules-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 3px; }
-
-    .rule-card {
-      border-radius: var(--r-lg);
-      padding: 10px 12px;
-      cursor: pointer;
-      transition: background 150ms;
-      background: rgba(24,24,27,0.3);
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.05);
-    }
-    .rule-card:hover { background: rgba(39,39,42,0.5); }
-    .rule-card.active { background: var(--surface); box-shadow: 0 0 0 1px rgba(255,255,255,0.1); }
-
-    .rule-card-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 7px; }
-
-    .card-badge {
-      font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
-      padding: 2px 7px; border-radius: 99px; font-family: var(--mono); flex-shrink: 0;
-    }
-    .cb-remove  { background: rgba(248,113,113,0.1);  color: var(--remove);  box-shadow: 0 0 0 1px rgba(248,113,113,0.25); }
-    .cb-report  { background: rgba(251,191,36,0.1);   color: var(--report);  box-shadow: 0 0 0 1px rgba(251,191,36,0.25); }
-    .cb-filter  { background: rgba(96,165,250,0.1);   color: var(--filter);  box-shadow: 0 0 0 1px rgba(96,165,250,0.25); }
-    .cb-approve { background: rgba(52,211,153,0.1);   color: var(--approve); box-shadow: 0 0 0 1px rgba(52,211,153,0.25); }
-    .cb-spam    { background: rgba(167,139,250,0.1);  color: var(--spam);    box-shadow: 0 0 0 1px rgba(167,139,250,0.25); }
-    .cb-none    { background: rgba(113,113,122,0.1);  color: var(--muted);   box-shadow: 0 0 0 1px rgba(113,113,122,0.2); }
-
-    .reorder-btns { display: flex; gap: 2px; opacity: 0; transition: opacity 150ms; }
-    .rule-card:hover .reorder-btns { opacity: 1; }
-
-    .reorder-btn {
-      background: transparent; border: 1px solid var(--border); color: var(--muted);
-      width: 20px; height: 18px; border-radius: 4px; cursor: pointer; font-size: 8px;
-      display: flex; align-items: center; justify-content: center;
-      transition: background 150ms, color 150ms; padding: 0;
-    }
-    .reorder-btn:hover:not(:disabled) { background: var(--border); color: var(--text); }
-    .reorder-btn:disabled { opacity: 0.2; cursor: default; }
-
-    .rule-card-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; line-height: 1.35; }
-    .rule-card-meta { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    .sidebar-footer { padding: 10px; border-top: 1px solid var(--border); flex-shrink: 0; }
-
-    .btn-add {
-      width: 100%; padding: 8px; background: transparent; border: 1px solid var(--border);
-      border-radius: var(--r-md); color: var(--muted); font-size: 13px; font-weight: 500;
-      font-family: var(--font); cursor: pointer; transition: background 150ms, color 150ms, border-color 150ms;
-    }
-    .btn-add:hover { background: var(--surface); color: var(--text); border-color: var(--z700); }
-
-    /* ── Main ── */
-    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
-
-    .topbar {
-      height: 56px; border-bottom: 1px solid var(--border); padding: 0 20px;
-      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-    }
-
-    .seg-group {
-      display: flex; background: var(--z900); border-radius: var(--r-lg);
-      padding: 3px; box-shadow: 0 0 0 1px rgba(255,255,255,0.05); gap: 2px;
-    }
-    .seg-btn {
-      padding: 5px 12px; border-radius: 6px; border: none; background: transparent;
-      color: var(--muted); font-size: 13px; font-weight: 500; font-family: var(--font);
-      cursor: pointer; transition: background 150ms, color 150ms; white-space: nowrap;
-    }
-    .seg-btn:hover { color: var(--text); }
-    .seg-btn.active { background: var(--z800); color: var(--text); }
-    .seg-btn.hidden { display: none; }
-
-    .topbar-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
-
-    .text-tab {
-      padding: 5px 10px; background: transparent; border: none; color: var(--muted);
-      font-size: 13px; font-weight: 500; font-family: var(--font); cursor: pointer;
-      transition: color 150ms; border-radius: var(--r-md);
-    }
-    .text-tab:hover:not(:disabled) { color: var(--text); }
-    .text-tab.active { color: var(--text); }
-    .text-tab:disabled { opacity: 0.35; cursor: default; }
-
-    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-
-    .btn-dev {
-      background: transparent; border: 1px solid var(--border); color: var(--muted);
-      padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;
-      font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em;
-      cursor: pointer; transition: color 150ms, border-color 150ms;
-    }
-    .btn-dev:hover { color: var(--text); }
-    .btn-dev.on { color: var(--accent); border-color: var(--accent); }
-
-    .btn-reload {
-      background: transparent; border: 1px solid var(--border); color: var(--muted);
-      padding: 5px 10px; border-radius: var(--r-md); font-size: 10px; font-weight: 700;
-      font-family: var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
-      cursor: pointer; transition: background 150ms, color 150ms;
-    }
-    .btn-reload:hover { background: var(--surface); color: var(--text); }
-
-    .btn-save {
-      background: #f4f4f5; color: #09090b; border: none; padding: 7px 14px;
-      border-radius: var(--r-md); font-size: 13px; font-weight: 600; font-family: var(--font);
-      cursor: pointer; transition: background 150ms, opacity 150ms;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .btn-save:disabled { opacity: 0.35; cursor: default; }
-    .btn-save:hover:not(:disabled) { background: #e4e4e7; }
-
-    .canvas { flex: 1; overflow-y: auto; padding: 24px; }
-    .canvas-inner { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
-
-    .state-center { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--muted); text-align: center; }
-    .state-icon { font-size: 36px; margin-bottom: 4px; }
-    .state-title { font-size: 15px; font-weight: 500; color: var(--text); }
-    .state-hint { font-size: 13px; }
-
-    .editor-hdr { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
-    .editor-title { font-size: 18px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -0.015em; }
-
-    .btn-delete {
-      background: transparent; border: 1px solid rgba(248,113,113,0.2); color: var(--remove);
-      padding: 5px 11px; border-radius: var(--r-md); font-size: 12px; font-weight: 600;
-      font-family: var(--font); cursor: pointer; transition: background 150ms; flex-shrink: 0;
-    }
-    .btn-delete:hover { background: rgba(248,113,113,0.1); }
-
-    /* Summary card */
-    .summary-card {
-      background: linear-gradient(135deg, #18181b 0%, rgba(24,24,27,0.5) 100%);
-      border-radius: 12px; padding: 18px 20px; box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
-    }
-    .summary-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); margin-bottom: 8px; font-family: var(--mono); }
-    .summary-text { font-size: 15px; font-weight: 500; color: #e4e4e7; line-height: 1.55; }
-
-    /* Collapsible groups */
-    .group { background: var(--surface); border-radius: var(--r-lg); box-shadow: 0 0 0 1px rgba(255,255,255,0.05); overflow: hidden; }
-    .group-hdr { display: flex; align-items: center; gap: 10px; padding: 13px 16px; cursor: pointer; transition: background 150ms; user-select: none; }
-    .group-hdr:hover { background: rgba(255,255,255,0.03); }
-    .group-icon { width: 28px; height: 28px; border-radius: 7px; background: var(--z800); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; color: var(--muted); }
-    .group-label { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
-    .group-chev { color: var(--muted); transition: transform 150ms; flex-shrink: 0; }
-    .group.collapsed .group-chev { transform: rotate(-90deg); }
-    .group-body { padding: 0 16px 16px; border-top: 1px solid rgba(255,255,255,0.04); display: flex; flex-direction: column; gap: 10px; padding-top: 14px; }
-    .group.collapsed .group-body { display: none; }
-
-    /* Form fields */
-    .field { display: flex; flex-direction: column; gap: 5px; }
-    .field-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .field-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    .flabel { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
-    .fhint { font-size: 11px; color: var(--muted); margin-top: 2px; }
-
-    .input, .fselect, .ftextarea {
-      background: var(--z800); border: none; box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
-      border-radius: var(--r-md); color: var(--text); font-family: var(--font);
-      font-size: 13px; padding: 8px 10px; outline: none; transition: box-shadow 150ms; width: 100%;
-    }
-    .input:focus, .fselect:focus, .ftextarea:focus { box-shadow: 0 0 0 1px #52525b; }
-    .input.mono, .ftextarea.mono { font-family: var(--mono); font-size: 12px; }
-    .ftextarea { resize: vertical; min-height: 72px; line-height: 1.5; }
-    .fselect {
-      cursor: pointer; appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
-    }
-
-    /* Op+value */
-    .op-val { display: flex; align-items: center; gap: 6px; }
-    .op-select {
-      width: 68px; flex-shrink: 0; background: var(--z800); border: none;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.08); border-radius: var(--r-md);
-      color: var(--text); font-family: var(--mono); font-size: 13px; padding: 8px 6px;
-      outline: none; cursor: pointer; appearance: none; text-align: center; transition: box-shadow 150ms;
-    }
-    .op-select:focus { box-shadow: 0 0 0 1px #52525b; }
-    .val-input {
-      flex: 1; background: var(--z800); border: none; box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
-      border-radius: var(--r-md); color: var(--text); font-family: var(--mono); font-size: 13px;
-      padding: 8px 10px; outline: none; min-width: 0; transition: box-shadow 150ms;
-    }
-    .val-input:focus { box-shadow: 0 0 0 1px #52525b; }
-    .val-unit { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--mono); flex-shrink: 0; min-width: 42px; text-align: right; }
-
-    /* Action picker */
-    .action-picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-    .action-btn {
-      padding: 9px 6px; border: none; border-radius: var(--r-md); font-size: 12px; font-weight: 600;
-      font-family: var(--font); cursor: pointer; transition: background 150ms, color 150ms;
-      background: var(--z800); color: var(--muted); text-align: center;
-    }
-    .action-btn:hover:not(.ab-active) { background: var(--z700); color: var(--text); }
-    .ab-active { background: #f4f4f5 !important; color: #09090b !important; }
-
-    /* Checkboxes */
-    .check-row { display: flex; align-items: center; gap: 9px; cursor: pointer; }
-    .check-row input[type="checkbox"] { accent-color: #52525b; width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
-    .check-label { font-size: 13px; color: #a1a1aa; line-height: 1.4; }
-
-    .fdivider { height: 1px; background: rgba(255,255,255,0.04); margin: 2px 0; }
-
-    /* YAML */
-    .yaml-wrap { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: 0 0 0 1px rgba(255,255,255,0.05); }
-    .yaml-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); font-family: var(--mono); margin-bottom: 12px; }
-    .yaml-block { background: var(--z800); border-radius: var(--r-md); padding: 14px 16px; font-family: var(--mono); font-size: 12px; line-height: 1.7; color: #a1a1aa; white-space: pre-wrap; word-break: break-word; box-shadow: 0 0 0 1px rgba(255,255,255,0.06); min-height: 180px; user-select: all; cursor: default; }
-    .yaml-hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
-
-    /* Raw JSON */
-    .raw-wrap { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: 0 0 0 1px rgba(255,255,255,0.05); }
-    .raw-area { width: 100%; min-height: 320px; background: var(--z800); border: none; box-shadow: 0 0 0 1px rgba(255,255,255,0.08); border-radius: var(--r-md); color: var(--text); padding: 14px 16px; font-family: var(--mono); font-size: 12px; line-height: 1.6; outline: none; resize: vertical; transition: box-shadow 150ms; }
-    .raw-area:focus { box-shadow: 0 0 0 1px #52525b; }
-    .raw-hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
-
-    .banner { border-radius: var(--r-md); padding: 10px 14px; font-size: 13px; margin-bottom: 10px; }
-    .banner-success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #34d399; }
-    .banner-error   { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); color: var(--remove); }
-
-    /* Sticky pill */
-    .save-pill {
-      position: fixed; bottom: 24px; left: 50%;
-      transform: translateX(calc(-50% + 140px)) translateY(12px);
-      background: #f4f4f5; color: #09090b; border-radius: 99px; padding: 10px 14px;
-      display: flex; align-items: center; gap: 10px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.1);
-      opacity: 0; pointer-events: none; transition: opacity 200ms, transform 200ms; z-index: 100;
-    }
-    .save-pill.visible { opacity: 1; pointer-events: auto; transform: translateX(calc(-50% + 140px)) translateY(0); }
-    .pill-dot { width: 7px; height: 7px; background: var(--report); border-radius: 50%; animation: pulse 1.5s infinite; flex-shrink: 0; }
-    .pill-text { font-size: 13px; font-weight: 400; color: #52525b; white-space: nowrap; }
-    .pill-reset { background: transparent; border: none; font-size: 12px; font-weight: 600; color: #71717a; cursor: pointer; padding: 0; transition: color 150ms; font-family: var(--font); }
-    .pill-reset:hover { color: #3f3f46; }
-    .pill-save { background: #09090b; color: #f4f4f5; border: none; padding: 5px 14px; border-radius: 99px; font-size: 12px; font-weight: 700; font-family: var(--font); cursor: pointer; transition: background 150ms; white-space: nowrap; }
-    .pill-save:hover { background: #27272a; }
-
-    /* Simulator */
-    #simulatorArea { flex: 1; overflow-y: auto; padding: 24px; }
-    .sim-wrap { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
-    .sim-card { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: 0 0 0 1px rgba(255,255,255,0.05); }
-    .sim-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 16px; }
-    .sim-row { margin-bottom: 12px; }
-    .sim-row:last-child { margin-bottom: 0; }
-    .sim-radio-group { display: flex; gap: 20px; }
-    .sim-radio { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; color: var(--muted); }
-    .sim-radio input { accent-color: #52525b; width: 14px; height: 14px; }
-    .btn-sim-run { background: #f4f4f5; color: #09090b; border: none; padding: 9px 20px; border-radius: var(--r-md); font-size: 13px; font-weight: 700; font-family: var(--font); cursor: pointer; transition: background 150ms; margin-top: 4px; }
-    .btn-sim-run:hover { background: #e4e4e7; }
-    .result-card { background: var(--surface); border-radius: var(--r-lg); padding: 14px 16px; box-shadow: 0 0 0 1px rgba(255,255,255,0.05); border-left: 3px solid var(--border); }
-    .result-card.fires { border-left-color: var(--remove); }
-    .result-card.no-match { opacity: 0.65; }
-    .result-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .result-icon { font-size: 16px; }
-    .result-name { font-size: 13px; font-weight: 600; flex: 1; color: var(--text); }
-    .result-fires { font-size: 12px; font-weight: 700; color: var(--remove); }
-    .result-miss  { font-size: 12px; color: var(--muted); }
-    .result-reasons { list-style: none; display: flex; flex-direction: column; gap: 2px; }
-    .result-reasons li { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: flex-start; }
-    .result-reasons li.pass { color: var(--accent); }
-    .result-reasons li.fail { color: var(--remove); }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=be-1" />
 </head>
 <body>
-
-<div class="app">
-  <div class="sidebar">
-    <div class="sidebar-head">
-      <div class="sidebar-logo">
-        <span class="logo-text">AutoMod Studio</span>
-        <span class="live-dot" id="liveDot"></span>
-      </div>
-      <div class="sidebar-sub" id="headerSub">Loading...</div>
-    </div>
-    <div class="rules-list" id="ruleList"></div>
-    <div class="sidebar-footer">
-      <button class="btn-add" id="addRuleBtn">+ Create New Rule</button>
-    </div>
-  </div>
-
-  <div class="main">
-    <div class="topbar">
-      <div class="seg-group">
-        <button class="seg-btn active" id="tabVisual">Visual Editor</button>
-        <button class="seg-btn" id="tabYaml">YAML Preview</button>
-        <button class="seg-btn hidden" id="tabRaw">Raw JSON</button>
-      </div>
-      <div class="topbar-sep"></div>
-      <button class="text-tab" id="tabSimulator">Simulator</button>
-      <button class="text-tab" disabled title="Coming soon">History</button>
-      <div class="topbar-right">
-        <button class="btn-dev" id="devToggle" title="Show Raw JSON tab">DEV</button>
-        <button class="btn-reload" id="reloadBtn">RELOAD</button>
-        <button class="btn-save" id="saveBtn" disabled>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline points="17 21 17 13 7 13 7 21"/>
-            <polyline points="7 3 7 8 15 8"/>
-          </svg>
-          Save Changes
-        </button>
-      </div>
-    </div>
-
-    <div class="canvas" id="editorCanvas">
-      <div class="canvas-inner" id="editorPanel">
-        <div class="state-center" style="height:300px">
-          <div class="state-icon">📋</div>
-          <div class="state-title">Loading rules...</div>
+  <div class="app-shell" id="appShell">
+    <header class="topbar">
+      <div class="topbar-brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.4-2.8 8.3-7 10-4.2-1.7-7-5.6-7-10V6l7-3z"/><path d="M9.5 12l1.7 1.7 3.8-4"/></svg>
+        </div>
+        <div class="brand-row">
+          <div class="brand-title">AutoMod Studio</div>
+          <div class="brand-version">v0.4.2</div>
         </div>
       </div>
-    </div>
+      <div class="topbar-separator" aria-hidden="true"></div>
+      <div class="crumbs">
+        <div class="breadcrumb" id="breadcrumb">Build / Templates</div>
+        <div class="page-title" id="pageTitle">Templates</div>
+      </div>
+      <div class="top-actions">
+        <button class="btn btn-primary btn-new" id="newRuleBtn"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New rule</button>
+        <div class="top-separator"></div>
+        <button class="btn btn-ghost icon-btn" title="Notifications"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button>
+        <button class="btn btn-ghost icon-btn" id="themeBtn" title="Toggle theme"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 3v2"/><path d="M12 19v2"/><path d="M5.6 5.6 7 7"/><path d="M17 17l1.4 1.4"/><path d="M3 12h2"/><path d="M19 12h2"/><path d="M5.6 18.4 7 17"/><path d="M17 7l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg></button>
+        <div class="avatar">JM</div>
+        <button class="btn btn-primary" id="deployBtn" disabled style="display:none">Deploy</button>
+      </div>
+    </header>
 
-    <div id="simulatorArea" style="display:none"></div>
+    <aside class="sidebar">
+      <div class="sidebar-rail-head">
+        <span class="sidebar-rail-label" id="sidebarSubredditLabel">r/ModQueueLab</span>
+        <button class="sidebar-collapse" id="sideNavToggle" type="button" title="Collapse sidebar" aria-label="Collapse sidebar" aria-expanded="true" aria-controls="sidebarNav">
+          <svg class="svg-icon sidebar-collapse-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+      </div>
+      <div class="sidebar-body" id="sidebarNav">
+        <nav class="nav-section" aria-label="Primary">
+          <div class="nav-kicker">Build</div>
+          <button class="nav-item active" data-view="templates" title="Templates"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg></span><span class="nav-label">Templates</span></button>
+          <button class="nav-item" data-view="rules" title="My rules"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></svg></span><span class="nav-label">My rules</span><span class="nav-count" id="rulesNavCount">0</span></button>
+          <button class="nav-item" data-view="simulator" title="Simulator"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M5 21V5"/><path d="M5 5h12l-2 4 2 4H5"/></svg></span><span class="nav-label">Simulator</span></button>
+          <div class="nav-kicker">Monitor</div>
+          <button class="nav-item" data-view="history" title="Version history"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg></span><span class="nav-label">Version history</span><span class="nav-count" id="historyNavCount">0</span></button>
+          <div class="nav-kicker">Workspace</div>
+          <button class="nav-item" data-view="settings" title="Settings"><span class="nav-icon"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.8 1.8 0 0 0 .4 2l.1.1a2.1 2.1 0 0 1-3 3l-.1-.1a1.8 1.8 0 0 0-2-.4 1.8 1.8 0 0 0-1.1 1.7V21a2.1 2.1 0 0 1-4.2 0v-.2a1.8 1.8 0 0 0-1.1-1.7 1.8 1.8 0 0 0-2 .4l-.1.1a2.1 2.1 0 0 1-3-3l.1-.1a1.8 1.8 0 0 0 .4-2 1.8 1.8 0 0 0-1.7-1.1H2a2.1 2.1 0 0 1 0-4.2h.2A1.8 1.8 0 0 0 3.9 8a1.8 1.8 0 0 0-.4-2l-.1-.1a2.1 2.1 0 0 1 3-3l.1.1a1.8 1.8 0 0 0 2 .4 1.8 1.8 0 0 0 1.1-1.7V1.5a2.1 2.1 0 0 1 4.2 0v.2a1.8 1.8 0 0 0 1.1 1.7 1.8 1.8 0 0 0 2-.4l.1-.1a2.1 2.1 0 0 1 3 3l-.1.1a1.8 1.8 0 0 0-.4 2 1.8 1.8 0 0 0 1.7 1.1h.2a2.1 2.1 0 0 1 0 4.2h-.2a1.8 1.8 0 0 0-1.7 1.1z"/></svg></span><span class="nav-label">Settings</span></button>
+        </nav>
+      </div>
+      <footer class="sidebar-footer">
+        <button class="sidebar-reload" id="reloadBtn" type="button">
+          <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7"/><path d="M21 3v6h-6"/><path d="M21 12a9 9 0 0 1-15 6.7"/><path d="M3 21v-6h6"/></svg>
+          <span class="sidebar-reload-label">Reload from Reddit</span>
+        </button>
+      </footer>
+    </aside>
+
+    <main class="main">
+      <section class="content">
+        <div class="content-inner">
+          <div class="banner" id="banner"></div>
+          <div id="viewRoot"></div>
+        </div>
+      </section>
+    </main>
   </div>
-</div>
 
-<div class="save-pill" id="savePill">
-  <span class="pill-dot"></span>
-  <span class="pill-text">Unsaved changes</span>
-  <button class="pill-reset" id="resetBtn">Reset</button>
-  <button class="pill-save" id="savePillBtn">Save Rules</button>
-</div>
+  <div class="save-bar" id="saveBar">
+    <div class="save-copy"><span class="save-dot"></span><span>Unsaved changes on this device</span></div>
+    <button class="btn btn-ghost" id="resetBtn" type="button">Discard</button>
+    <button class="btn btn-secondary" id="saveDraftBtn" type="button">Save draft</button>
+    <button class="btn btn-primary" id="saveBarBtn" type="button">Deploy to Reddit</button>
+  </div>
 
-<script src="index.js"></script>
+  <script src="index.js?v=be-1"></script>
 </body>
 </html>

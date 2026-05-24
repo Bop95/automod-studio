@@ -1,22 +1,45 @@
-# dependencies
-node_modules
+# Dependencies
+node_modules/
 
-# build
-dist
+# Build / bundler output
+dist/
+build/
+*.local.bundle.js
 
-# logs
+# Devvit CLI local overrides (keep devvit.yaml / devvit.json committed)
+.devvit/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# environment variables
-.env
-
-# OS files
-.DS_Store
+pnpm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
 
-# Claude Code local settings
+# Test / coverage
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors & AI assistants (local only)
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .claude/
+.cursor/
+
+# Optional: personal playtest notes
+*.local.md

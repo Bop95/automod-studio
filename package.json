@@ -4,7 +4,8 @@
   "description": "Visual editor for Reddit AutoModerator rules — built on Devvit",
   "main": "index.js",
   "scripts": {
-    "build": "devvit build",
+    "login": "devvit login",
+    "upload": "devvit upload",
     "dev": "devvit playtest",
     "check": "tsc --noEmit"
   },
@@ -21,11 +22,12 @@
   },
   "homepage": "https://github.com/Bop95/automod-studio#readme",
   "dependencies": {
-    "@devvit/public-api": "0.12.22",
+    "@devvit/public-api": "0.12.24",
     "js-yaml": "^4.1.1"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
+    "devvit": "0.12.24",
     "typescript": "^6.0.3"
   },
   "private": true
