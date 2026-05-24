@@ -63,6 +63,7 @@ automod-studio/
 │       └── automod.ts       # TypeScript type definitions
 ├── webroot/
 │   ├── index.html           # Webview shell
+│   ├── styles.css           # App styles
 │   └── index.js             # Visual editor + simulator UI logic
 ├── package.json
 └── tsconfig.json
@@ -103,13 +104,16 @@ Reddit Wiki (updated YAML)
 git clone https://github.com/Bop95/automod-studio.git
 cd automod-studio
 npm install
-devvit login
+npm run login
+npm run upload   # first time only — registers your app on Reddit (opens browser)
 ```
 
 ### Playtest
 
 ```bash
-devvit playtest r/yoursubreddit
+npm run dev
+# or with your own test subreddit (<200 members, you are a mod):
+npm run dev -- r/yoursubreddit
 ```
 
 Open the playtest URL, go to Mod Tools, and click **AutoMod Studio**.
