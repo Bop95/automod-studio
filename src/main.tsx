@@ -8,6 +8,13 @@ const TERMS_URL = "https://github.com/Bop95/automod-studio/blob/main/TERMS.md";
 const PRIVACY_URL = "https://github.com/Bop95/automod-studio/blob/main/PRIVACY.md";
 const DOCS_URL = "https://developers.reddit.com/docs/";
 const DEVVIT_COMMUNITY_URL = "https://www.reddit.com/r/Devvit/";
+const APP_IMAGE = {
+  url: "ourapp.png",
+  width: 1024,
+  height: 559,
+  description:
+    "AutoMod Studio illustration showing the visual interface, rule builder, and simulator.",
+};
 
 Devvit.configure({
   redditAPI: true,
@@ -220,17 +227,34 @@ Devvit.addCustomPostType({
     });
 
     return (
-      <vstack height="100%" width="100%" alignment="center middle" gap="medium">
-        <text size="xxlarge" weight="bold">
-          AutoMod Studio
-        </text>
-        <text size="medium" color="secondary-plain">
-          Visual editor for your AutoMod rules
-        </text>
+      <vstack
+        height="100%"
+        width="100%"
+        alignment="center middle"
+        gap="medium"
+        padding="large"
+        backgroundColor="white"
+      >
+        <image
+          url={APP_IMAGE.url}
+          imageWidth={APP_IMAGE.width}
+          imageHeight={APP_IMAGE.height}
+          description={APP_IMAGE.description}
+          width="92%"
+          height="48%"
+          resizeMode="fit"
+        />
+        <vstack alignment="center middle" gap="small" width="100%">
+          <text size="xxlarge" weight="bold" color="#0f172a">
+            AutoMod Studio
+          </text>
+          <text size="medium" color="#64748b">
+            Build, test, and deploy AutoModerator rules safely.
+          </text>
+        </vstack>
         <button onPress={() => webView.mount()} appearance="primary" size="large">
           Open Editor
         </button>
-        <spacer size="medium" />
         <hstack gap="small" alignment="center middle">
           <button
             appearance="plain"
@@ -239,7 +263,7 @@ Devvit.addCustomPostType({
           >
             Terms
           </button>
-          <text size="small" color="secondary-weak">
+          <text size="small" color="#cbd5e1">
             |
           </text>
           <button
@@ -249,7 +273,7 @@ Devvit.addCustomPostType({
           >
             Privacy
           </button>
-          <text size="small" color="secondary-weak">
+          <text size="small" color="#cbd5e1">
             |
           </text>
           <button
@@ -259,7 +283,7 @@ Devvit.addCustomPostType({
           >
             Docs
           </button>
-          <text size="small" color="secondary-weak">
+          <text size="small" color="#cbd5e1">
             |
           </text>
           <button
@@ -285,7 +309,23 @@ Devvit.addMenuItem({
       title: "AutoMod Studio — Visual Rule Editor",
       subredditName: subreddit.name,
       preview: (
-        <vstack height="100%" width="100%" alignment="center middle" gap="medium">
+        <vstack
+          height="100%"
+          width="100%"
+          alignment="center middle"
+          gap="medium"
+          padding="large"
+          backgroundColor="white"
+        >
+          <image
+            url={APP_IMAGE.url}
+            imageWidth={APP_IMAGE.width}
+            imageHeight={APP_IMAGE.height}
+            description={APP_IMAGE.description}
+            width="92%"
+            height="48%"
+            resizeMode="fit"
+          />
           <text size="xxlarge" weight="bold">
             AutoMod Studio
           </text>

@@ -34,6 +34,10 @@
 
 ---
 
+<p align="center">
+  <img alt="AutoMod Studio high-level product introduction showing the visual interface, rule builder, and simulator" src="./assets/ourapp.png" width="920" />
+</p>
+
 ## Overview
 
 AutoMod Studio turns Reddit AutoModerator from a raw YAML editing workflow into a visual, moderator-friendly control room. It reads `r/subreddit/wiki/config/automoderator`, parses the configuration into editable rule cards, lets moderators test rules against sample content, and writes validated YAML back to Reddit through Devvit.
@@ -114,6 +118,8 @@ sequenceDiagram
 
 ```text
 automod-studio/
+├── assets/
+│   └── ourapp.png
 ├── devvit.yaml
 ├── package.json
 ├── src/
