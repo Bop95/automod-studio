@@ -321,6 +321,28 @@
     .breadcrumb { color: var(--muted-foreground); font-size: 11px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .page-title { font-size: 17px; font-weight: var(--fw-semibold); letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .top-actions { display: flex; align-items: center; gap: 8px; }
+    .legal-links {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-right: 6px;
+      color: var(--muted-foreground);
+      font-size: 13px;
+      font-weight: var(--fw-medium);
+      white-space: nowrap;
+    }
+    .legal-links a {
+      color: var(--muted-foreground);
+      text-decoration: none;
+    }
+    .legal-links a:hover {
+      color: var(--foreground);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .legal-links span {
+      color: var(--border);
+    }
     .content { flex: 1; min-height: 0; overflow: auto; padding: 26px 30px 40px; }
     .content-inner { max-width: 1180px; margin: 0 auto; }
 

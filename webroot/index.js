@@ -1210,6 +1210,7 @@ function renderBuilderTopActions() {
   const label = formatSubredditLabel(state.subredditName);
   return `
     <div class="topbar-builder-actions">
+      ${renderLegalLinks()}
       ${state.dirty ? '<span class="topbar-dirty"><span class="save-dot"></span>Unsaved</span>' : ''}
       <button type="button" class="community-pill" title="${h(label)}">
         <span class="community-pill-avatar">${h(subredditInitials(state.subredditName))}</span>
@@ -1245,6 +1246,7 @@ function applySidebarState() {
 function renderTopActions(view) {
   if (view === 'simulator') {
     return `
+      ${renderLegalLinks()}
       <button class="btn btn-ghost" data-action="goRules">${icon('chevron-left')}Back to editor</button>
       <button class="btn btn-primary btn-new" data-action="goRules">${icon('check')}Done</button>
       <div class="top-separator"></div>
@@ -1258,12 +1260,27 @@ function renderTopActions(view) {
     return renderBuilderTopActions();
   }
   return `
+    ${renderLegalLinks()}
     <button class="btn btn-primary btn-new" data-action="blank">${icon('plus')}New rule</button>
     <div class="top-separator"></div>
     <button class="btn btn-ghost icon-btn" title="Notifications">${icon('bell')}</button>
     <button class="btn btn-ghost icon-btn" data-action="toggleTheme" title="Toggle theme">${icon('sun')}</button>
     <div class="avatar">8M</div>
     <button class="btn btn-primary" id="deployBtn" disabled style="display:none">Deploy</button>
+  `;
+}
+
+function renderLegalLinks() {
+  return `
+    <nav class="legal-links" aria-label="Legal and support links">
+      <a href="https://github.com/Bop95/automod-studio/blob/main/TERMS.md" target="_blank" rel="noopener noreferrer">Terms</a>
+      <span aria-hidden="true">|</span>
+      <a href="https://github.com/Bop95/automod-studio/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer">Privacy</a>
+      <span aria-hidden="true">|</span>
+      <a href="https://developers.reddit.com/docs/" target="_blank" rel="noopener noreferrer">Docs</a>
+      <span aria-hidden="true">|</span>
+      <a href="https://www.reddit.com/r/Devvit/" target="_blank" rel="noopener noreferrer">r/Devvit</a>
+    </nav>
   `;
 }
 

@@ -4,6 +4,10 @@ import { parseAutoModeratorYaml } from "./parser/yamlToJson";
 import { serializeRulesToYaml } from "./serializer";
 
 const WIKI_PAGE = "config/automoderator";
+const TERMS_URL = "https://github.com/Bop95/automod-studio/blob/main/TERMS.md";
+const PRIVACY_URL = "https://github.com/Bop95/automod-studio/blob/main/PRIVACY.md";
+const DOCS_URL = "https://developers.reddit.com/docs/";
+const DEVVIT_COMMUNITY_URL = "https://www.reddit.com/r/Devvit/";
 
 Devvit.configure({
   redditAPI: true,
@@ -226,6 +230,46 @@ Devvit.addCustomPostType({
         <button onPress={() => webView.mount()} appearance="primary" size="large">
           Open Editor
         </button>
+        <spacer size="medium" />
+        <hstack gap="small" alignment="center middle">
+          <button
+            appearance="plain"
+            size="small"
+            onPress={() => context.ui.navigateTo(TERMS_URL)}
+          >
+            Terms
+          </button>
+          <text size="small" color="secondary-weak">
+            |
+          </text>
+          <button
+            appearance="plain"
+            size="small"
+            onPress={() => context.ui.navigateTo(PRIVACY_URL)}
+          >
+            Privacy
+          </button>
+          <text size="small" color="secondary-weak">
+            |
+          </text>
+          <button
+            appearance="plain"
+            size="small"
+            onPress={() => context.ui.navigateTo(DOCS_URL)}
+          >
+            Docs
+          </button>
+          <text size="small" color="secondary-weak">
+            |
+          </text>
+          <button
+            appearance="plain"
+            size="small"
+            onPress={() => context.ui.navigateTo(DEVVIT_COMMUNITY_URL)}
+          >
+            r/Devvit
+          </button>
+        </hstack>
       </vstack>
     );
   },
