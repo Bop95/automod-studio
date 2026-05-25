@@ -1,5 +1,5 @@
 {
-  "name": "automod-lab",
+  "name": "vizu-app",
   "version": "0.0.0",
   "description": "Visual editor for Reddit AutoModerator rules — built on Devvit",
   "main": "index.js",
