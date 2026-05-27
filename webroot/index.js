@@ -254,11 +254,59 @@ function notify(type, text, options) {
   state.notification = { type: type, text: text, retryAction: options && options.retryAction };
 }
 
+function appConfirm(options) {
+  return new Promise(function(resolve) {
+    const root = document.getElementById('appConfirm');
+    if (!root) {
+      resolve(false);
+      return;
+    }
+    const titleEl = document.getElementById('appConfirmTitle');
+    const messageEl = document.getElementById('appConfirmMessage');
+    const okBtn = document.getElementById('appConfirmOk');
+    const cancelBtn = document.getElementById('appConfirmCancel');
+    const backdrop = root.querySelector('.app-confirm-backdrop');
+    titleEl.textContent = options.title || 'Confirm';
+    messageEl.textContent = options.message || '';
+    okBtn.textContent = options.confirmLabel || 'Confirm';
+    cancelBtn.textContent = options.cancelLabel || 'Cancel';
+    okBtn.className = 'btn ' + (options.danger ? 'btn-danger' : 'btn-primary');
+    root.hidden = false;
+    root.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('app-confirm-open');
+
+    function finish(value) {
+      root.hidden = true;
+      root.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('app-confirm-open');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      if (backdrop) backdrop.removeEventListener('click', onCancel);
+      document.removeEventListener('keydown', onKeydown);
+      resolve(value);
+    }
+    function onOk() { finish(true); }
+    function onCancel() { finish(false); }
+    function onKeydown(e) {
+      if (e.key === 'Escape') onCancel();
+      else if (e.key === 'Enter') onOk();
+    }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    if (backdrop) backdrop.addEventListener('click', onCancel);
+    document.addEventListener('keydown', onKeydown);
+    cancelBtn.focus();
+  });
+}
+
 function confirmUnsavedLeave() {
-  if (!state.dirty) return true;
-  return window.confirm(
-    'You have unsaved changes on this device. Leave without deploying? Your draft stays saved locally until you discard it.'
-  );
+  if (!state.dirty) return Promise.resolve(true);
+  return appConfirm({
+    title: 'Unsaved changes',
+    message: 'You have unsaved changes on this device. Leave without deploying? Your draft stays saved locally until you discard it.',
+    confirmLabel: 'Leave',
+    cancelLabel: 'Stay',
+  });
 }
 
 function captureUiState() {
@@ -418,14 +466,14 @@ window.addEventListener('beforeunload', function(e) {
 function bindStaticEvents() {
   document.querySelectorAll('.nav-item[data-view]').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      setView(btn.dataset.view);
+      void setView(btn.dataset.view);
     });
   });
   document.getElementById('themeBtn').addEventListener('click', toggleTheme);
   document.getElementById('sideNavToggle').addEventListener('click', toggleSidebar);
   document.getElementById('newRuleBtn').addEventListener('click', createBlankRule);
-  document.getElementById('deployBtn').addEventListener('click', deployRules);
-  document.getElementById('saveBarBtn').addEventListener('click', deployRules);
+  document.getElementById('deployBtn').addEventListener('click', function() { void deployRules(); });
+  document.getElementById('saveBarBtn').addEventListener('click', function() { void deployRules(); });
   document.getElementById('resetBtn').addEventListener('click', function() {
     clearDraft();
     state.rules = clone(state.serverRules || []);
@@ -439,13 +487,7 @@ function bindStaticEvents() {
   const saveDraftBtn = document.getElementById('saveDraftBtn');
   if (saveDraftBtn) saveDraftBtn.addEventListener('click', saveDraftOnly);
   document.getElementById('reloadBtn').addEventListener('click', function() {
-    if (state.dirty && !window.confirm('Reload from Reddit and discard unsaved changes on this device?')) return;
-    clearDraft();
-    state.dirty = false;
-    state.loading = true;
-    state.notification = null;
-    renderShell();
-    requestRules();
+    void reloadFromReddit();
   });
 }
 
@@ -669,7 +711,7 @@ function handleDevvitMsg(msg) {
 
 window.handleDevvitMsg = handleDevvitMsg;
 
-function selectBuilderRule(index) {
+async function selectBuilderRule(index) {
   const next = Number(index);
   if (Number.isNaN(next) || next < 0 || next >= state.rules.length) return;
   if (next === state.selected && state.view === 'builder') return;
@@ -678,12 +720,31 @@ function selectBuilderRule(index) {
     renderShell();
     return;
   }
-  setView('builder');
+  await setView('builder');
 }
 
-function setView(view) {
+async function reloadFromReddit() {
+  if (state.dirty) {
+    const ok = await appConfirm({
+      title: 'Reload from Reddit',
+      message: 'Reload from Reddit and discard unsaved changes on this device?',
+      confirmLabel: 'Reload',
+      cancelLabel: 'Cancel',
+      danger: true,
+    });
+    if (!ok) return;
+  }
+  clearDraft();
+  state.dirty = false;
+  state.loading = true;
+  state.notification = null;
+  renderShell();
+  requestRules();
+}
+
+async function setView(view) {
   if (view === state.view) return;
-  if (!confirmUnsavedLeave()) return;
+  if (!(await confirmUnsavedLeave())) return;
   if (view === 'simulator' && state.selected >= 0 && state.rules[state.selected]) {
     const rule = state.rules[state.selected];
     if (!state.sim.body && getArr(rule, 'body (includes)').length) {
@@ -754,7 +815,7 @@ function useTemplate(id) {
   renderShell();
 }
 
-function deployRules() {
+async function deployRules() {
   if (!state.dirty || state.saving) return;
   if (!state.canSave) {
     notify('error', 'You must be signed in as a moderator to save to the subreddit wiki.');
@@ -769,11 +830,16 @@ function deployRules() {
   }
   const sub = formatSubredditLabel(state.subredditName);
   const n = state.rules.length;
-  const ok = window.confirm(
-    'Save to ' + sub + ' wiki?\n\n' +
-    'This replaces the entire config/automoderator page with ' + n + ' rule' + (n === 1 ? '' : 's') + ' from this editor. ' +
-    'Rules that exist on Reddit but are not loaded here will be removed.'
-  );
+  const ok = await appConfirm({
+    title: 'Deploy to Reddit',
+    message:
+      'Save to ' + sub + ' wiki?\n\n' +
+      'This replaces the entire config/automoderator page with ' + n + ' rule' + (n === 1 ? '' : 's') + ' from this editor. ' +
+      'Rules that exist on Reddit but are not loaded here will be removed.',
+    confirmLabel: 'Deploy',
+    cancelLabel: 'Cancel',
+    danger: true,
+  });
   if (!ok) return;
   const payload = state.rules.map(function(rule) {
     const copy = clone(rule);
@@ -785,6 +851,32 @@ function deployRules() {
   updateDirtyState();
   renderShell();
   sendToDevvit({ type: 'SAVE', rules: payload });
+}
+
+async function deleteRuleAtIndex(index) {
+  if (Number.isNaN(index) || index < 0 || index >= state.rules.length) return;
+  const name = getRuleName(state.rules[index] || {});
+  const ok = await appConfirm({
+    title: 'Delete rule',
+    message: 'Delete rule “' + name + '”? This cannot be undone until you reload from Reddit without saving.',
+    confirmLabel: 'Delete',
+    cancelLabel: 'Cancel',
+    danger: true,
+  });
+  if (!ok) return;
+  state.rules.splice(index, 1);
+  if (!state.rules.length) {
+    state.selected = -1;
+    state.view = 'rules';
+  } else {
+    state.selected = Math.min(index, state.rules.length - 1);
+  }
+  notify('success', 'Rule removed from this draft. Save rule to apply changes on Reddit.');
+  if (state.view === 'builder' && state.rules.length) {
+    state.ui.focusSelector = '#builder-rule-tab-' + state.selected;
+  }
+  markDirty();
+  renderShell();
 }
 
 function saveDraftOnly() {
@@ -960,7 +1052,7 @@ function rulesSnapshotToYaml(rules) {
   }).join('\n\n---\n\n');
 }
 
-function restoreHistoryVersion() {
+async function restoreHistoryVersion() {
   const selected = getSelectedHistoryItem();
   const item = selected.item;
   if (!item) return;
@@ -970,10 +1062,14 @@ function restoreHistoryVersion() {
     return;
   }
   const count = item.rules.length;
-  const ok = window.confirm(
-    'Restore “' + item.title + '” (' + count + ' rule' + (count === 1 ? '' : 's') + ') to the editor?\n\n' +
-    'Your current draft will be replaced. Nothing is sent to Reddit until you Save rule.'
-  );
+  const ok = await appConfirm({
+    title: 'Restore version',
+    message:
+      'Restore “' + item.title + '” (' + count + ' rule' + (count === 1 ? '' : 's') + ') to the editor?\n\n' +
+      'Your current draft will be replaced. Nothing is sent to Reddit until you Save rule.',
+    confirmLabel: 'Restore',
+    cancelLabel: 'Cancel',
+  });
   if (!ok) return;
   state.rules = clone(item.rules);
   ensureRuleIds(state.rules);
@@ -985,14 +1081,19 @@ function restoreHistoryVersion() {
   renderShell();
 }
 
-function revertWikiRevision() {
+async function revertWikiRevision() {
   const selected = getSelectedHistoryItem();
   const item = selected.item;
   if (!item || item.source !== 'reddit') return;
-  const ok = window.confirm(
-    'Revert config/automoderator on Reddit to this wiki revision?\n\n' +
-    'This updates the live wiki immediately (not just your local editor).'
-  );
+  const ok = await appConfirm({
+    title: 'Revert on Reddit',
+    message:
+      'Revert config/automoderator on Reddit to this wiki revision?\n\n' +
+      'This updates the live wiki immediately (not just your local editor).',
+    confirmLabel: 'Revert',
+    cancelLabel: 'Cancel',
+    danger: true,
+  });
   if (!ok) return;
   state.saving = true;
   notify('success', 'Reverting wiki on Reddit…');
@@ -2151,7 +2252,7 @@ document.addEventListener('click', function(e) {
   const action = el.dataset.action;
   if (!action) return;
   if (action === 'blank') createBlankRule();
-  if (action === 'deployRules') deployRules();
+  if (action === 'deployRules') void deployRules();
   if (action === 'saveDraft') saveDraftOnly();
   if (action === 'resetDraft') {
     clearDraft();
@@ -2165,33 +2266,18 @@ document.addEventListener('click', function(e) {
     renderShell();
   }
   if (action === 'selectRule') {
-    selectBuilderRule(el.dataset.index);
+    void selectBuilderRule(el.dataset.index);
   }
   if (action === 'useTemplate') useTemplate(el.dataset.template);
-  if (action === 'goTemplates') setView('templates');
-  if (action === 'goRules') setView('rules');
+  if (action === 'goTemplates') void setView('templates');
+  if (action === 'goRules') void setView('rules');
   if (action === 'testRule') scrollToBuilderPanel('#builderTestPanel');
   if (action === 'editRule') {
     state.selected = Number(el.dataset.index);
-    setView('builder');
+    void setView('builder');
   }
   if (action === 'deleteRule') {
-    const index = Number(el.dataset.index);
-    const name = getRuleName(state.rules[index] || {});
-    if (!window.confirm('Delete rule “' + name + '”? This cannot be undone until you reload from Reddit without saving.')) return;
-    state.rules.splice(index, 1);
-    if (!state.rules.length) {
-      state.selected = -1;
-      state.view = 'rules';
-    } else {
-      state.selected = Math.min(index, state.rules.length - 1);
-    }
-    notify('success', 'Rule removed from this draft. Save rule to apply changes on Reddit.');
-    if (state.view === 'builder' && state.rules.length) {
-      state.ui.focusSelector = '#builder-rule-tab-' + state.selected;
-    }
-    markDirty();
-    renderShell();
+    void deleteRuleAtIndex(Number(el.dataset.index));
   }
   if (action === 'setSimType') {
     state.sim.contentType = el.dataset.value || 'comment';
@@ -2230,12 +2316,12 @@ document.addEventListener('click', function(e) {
     if (parsed && parsed.source === 'reddit') loadWikiRevisionContent(parsed.id);
     renderShell();
   }
-  if (action === 'revertWikiRevision') revertWikiRevision();
+  if (action === 'revertWikiRevision') void revertWikiRevision();
   if (action === 'setHistoryDiffTab') {
     state.ui.historyDiffMode = el.dataset.mode === 'yaml' ? 'yaml' : 'visual';
     renderShell();
   }
-  if (action === 'restoreHistoryVersion') restoreHistoryVersion();
+  if (action === 'restoreHistoryVersion') void restoreHistoryVersion();
   if (action === 'setAction') {
     const rule = selectedRule();
     if (!rule) return;

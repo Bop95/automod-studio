@@ -4,9 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AutoMod Studio</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=be-1" />
+  <link rel="stylesheet" href="styles.css?v=csp-1" />
 </head>
 <body>
   <div class="app-shell" id="appShell">
@@ -88,6 +86,18 @@
     <button class="btn btn-primary" id="saveBarBtn" type="button">Deploy to Reddit</button>
   </div>
 
-  <script src="index.js?v=be-1"></script>
+  <div class="app-confirm" id="appConfirm" hidden aria-hidden="true">
+    <div class="app-confirm-backdrop" tabindex="-1"></div>
+    <div class="app-confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="appConfirmTitle" aria-describedby="appConfirmMessage">
+      <h2 class="app-confirm-title" id="appConfirmTitle"></h2>
+      <p class="app-confirm-message" id="appConfirmMessage"></p>
+      <div class="app-confirm-actions">
+        <button type="button" class="btn btn-ghost" id="appConfirmCancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="appConfirmOk">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="index.js?v=modals-1"></script>
 </body>
 </html>
