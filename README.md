@@ -1,42 +1,20 @@
 # AutoMod Studio
 
-<p align="center">
-  <img alt="AutoMod Studio banner" src="https://capsule-render.vercel.app/api?type=waving&height=190&color=0:FF4500,100:172033&text=AutoMod%20Studio&fontColor=ffffff&fontAlignY=38&desc=Visual%20workspace%20for%20Reddit%20AutoModerator&descAlignY=58&descAlign=50" />
-</p>
+**A native Devvit workspace for building, testing, versioning, and deploying Reddit AutoModerator rules.**
 
-<p align="center">
-  <strong>A native Devvit workspace for building, testing, versioning, and deploying Reddit AutoModerator rules.</strong>
-</p>
+[![Devvit](https://img.shields.io/badge/Devvit-0.12.24-FF4500?style=for-the-badge&logo=reddit&logoColor=white)](https://developers.reddit.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![js-yaml](https://img.shields.io/badge/js--yaml-4.1.1-CB3837?style=for-the-badge&logo=npm&logoColor=white)](https://www.npmjs.com/package/js-yaml)
+![HTML5](https://img.shields.io/badge/HTML5-Webview-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-Design%20System-1572B6?style=for-the-badge&logo=css3&logoColor=white)
 
-<p align="center">
-  <a href="https://developers.reddit.com/"><img alt="Devvit" src="https://img.shields.io/badge/Devvit-0.12.24-FF4500?style=for-the-badge&logo=reddit&logoColor=white"></a>
-  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white"></a>
-  <a href="https://www.npmjs.com/package/js-yaml"><img alt="js-yaml" src="https://img.shields.io/badge/js--yaml-4.1.1-CB3837?style=for-the-badge&logo=npm&logoColor=white"></a>
-  <img alt="HTML5" src="https://img.shields.io/badge/HTML5-Webview-E34F26?style=for-the-badge&logo=html5&logoColor=white">
-  <img alt="CSS3" src="https://img.shields.io/badge/CSS3-Design%20System-1572B6?style=for-the-badge&logo=css3&logoColor=white">
-</p>
+![License](https://img.shields.io/badge/license-BSD--3--Clause-172033?style=flat-square)
+![Platform](https://img.shields.io/badge/platform-Reddit%20Developer%20Platform-FF4500?style=flat-square)
+![Status](https://img.shields.io/badge/status-hackathon%20ready-16A34A?style=flat-square)
 
-<p align="center">
-  <img alt="License" src="https://img.shields.io/badge/license-BSD--3--Clause-172033?style=flat-square">
-  <img alt="Platform" src="https://img.shields.io/badge/platform-Reddit%20Developer%20Platform-FF4500?style=flat-square">
-  <img alt="Status" src="https://img.shields.io/badge/status-hackathon%20ready-16A34A?style=flat-square">
-</p>
-
-<p align="center">
-  <a href="./TERMS.md">Terms</a>
-  &nbsp; | &nbsp;
-  <a href="./PRIVACY.md">Privacy</a>
-  &nbsp; | &nbsp;
-  <a href="https://developers.reddit.com/docs/">Docs</a>
-  &nbsp; | &nbsp;
-  <a href="https://www.reddit.com/r/Devvit/">r/Devvit</a>
-</p>
+[Terms](https://github.com/Bop95/automod-studio/blob/main/TERMS.md) | [Privacy](https://github.com/Bop95/automod-studio/blob/main/PRIVACY.md) | [Docs](https://developers.reddit.com/docs/) | [r/Devvit](https://www.reddit.com/r/Devvit/)
 
 ---
-
-<p align="center">
-  <img alt="AutoMod Studio high-level product introduction showing the visual interface, rule builder, and simulator" src="./assets/ourapp.png" width="920" />
-</p>
 
 ## Overview
 
