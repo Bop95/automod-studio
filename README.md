@@ -166,7 +166,40 @@ automod-studio/
 
 `webroot/index.js` owns the visual editor, simulator, draft persistence, local history timeline, and shell navigation. `webroot/styles.css` provides the full light/dark design system and responsive app layout.
 
-## Getting Started
+## Installing AutoMod Studio
+
+AutoMod Studio is a general-purpose moderation app for communities that use Reddit AutoModerator. It is intended for moderators who are allowed to manage subreddit wiki and AutoModerator settings.
+
+After the app is listed in the Reddit App Directory:
+
+1. Open the app listing for **AutoMod Studio**.
+2. Choose the subreddit where you want to install it.
+3. Approve the requested moderator permissions.
+4. Open your subreddit.
+5. From the subreddit moderator menu, select **AutoMod Studio**.
+6. Create an AutoMod Studio post, then click **Open Editor**.
+
+The app reads and writes `r/YOUR_SUBREDDIT/wiki/config/automoderator`. Always review the generated YAML before saving, because deploy replaces the full AutoModerator wiki page with the rules currently loaded in the editor.
+
+## Moderator Workflow
+
+1. Open **Templates** to start from a common moderation pattern, or open **My rules** to review the current wiki config.
+2. Edit rule action, content type, author limits, body/title patterns, URL checks, flair checks, and response text in the builder.
+3. Use the inline tester or **Simulator** view to check sample content before deploy.
+4. Confirm that every rule has match conditions and no duplicate blockers.
+5. Click **Save rule** to update the live AutoModerator wiki page.
+6. Use **Version history** to compare local snapshots and Reddit wiki revisions, restore a version to the editor, or revert a Reddit revision.
+
+## Compatibility and Permissions
+
+- Platform: Reddit Devvit.
+- UI targets: Reddit web and mobile clients that support Devvit custom posts and webviews.
+- Users: subreddit moderators for setup and rule editing.
+- Required access: Reddit API, custom posts, subreddit menu actions, embedded webview, and moderator/wiki capabilities requested by Devvit.
+- External services: none used by the in-app workflow.
+- Persistent app storage: live rules in Reddit wiki; drafts and local snapshots in the moderator's browser storage.
+
+## Development Setup
 
 ### Prerequisites
 
@@ -205,6 +238,20 @@ npm run dev -- r/yoursubreddit
 
 Open the playtest subreddit, go to Mod Tools, and select **AutoMod Studio**.
 
+## Public Launch Checklist
+
+Before submitting a public version, verify:
+
+- Web playtest as the developer account.
+- Web playtest as another moderator account.
+- Web view as a regular non-moderator account.
+- Mobile playtest on a subreddit where the app is installed.
+- Empty AutoModerator wiki import.
+- Multi-rule AutoModerator wiki import.
+- Template creation, edit, simulator, save, history, restore, and revert flows.
+- Terms and Privacy links from the launch card and webview.
+- No test subreddit names appear before the Reddit API initializes workspace data.
+
 ## Development Commands
 
 | Command | Description |
@@ -222,6 +269,22 @@ Use these URLs in the Reddit Developer Portal app details form so Reddit can sho
 | --- | --- |
 | Terms of Service | `https://github.com/Bop95/automod-studio/blob/main/TERMS.md` |
 | Privacy Policy | `https://github.com/Bop95/automod-studio/blob/main/PRIVACY.md` |
+
+## Publishing
+
+For private review or unlisted release:
+
+```bash
+npx devvit publish
+```
+
+For App Directory review so any community can install AutoMod Studio:
+
+```bash
+npx devvit publish --public
+```
+
+Batch public updates into deliberate releases. Each public version enters Reddit review.
 
 ## Current Capabilities
 
@@ -251,6 +314,15 @@ The simulator is intentionally labeled approximate. It is designed to catch comm
 - Import/export rule templates.
 - Permission-aware UI for config-capable moderators.
 - Automated parser and serializer test fixtures.
+
+## Changelog
+
+### 0.1.0
+
+- Added public launch README, installer workflow, policy links, and launch checklist.
+- Added Devvit custom post launch screen with product image and legal/support links.
+- Added visual rule builder, template gallery, simulator, local draft recovery, wiki save, wiki revision history, restore, and revert flows.
+- Added app-specific Terms of Service and Privacy Policy.
 
 ## License
 
