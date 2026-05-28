@@ -110,7 +110,7 @@ const state = {
   view: 'templates',
   theme: localStorage.getItem('cg-theme') || 'light',
   sidebarCollapsed: localStorage.getItem('ams-sidebar-collapsed') === 'true',
-  subredditName: 'ModQueueLab',
+  subredditName: 'subreddit',
   currentUsername: null,
   canSave: true,
   wikiRevisions: [],
