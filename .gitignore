@@ -43,3 +43,6 @@ Thumbs.db
 
 # Optional: personal playtest notes
 *.local.md
+
+# Source copy; Devvit and README use assets/ourapp.png
+/ourapp.png
