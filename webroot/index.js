@@ -22,7 +22,7 @@ const templates = [
     name: 'Restrict new accounts',
     category: 'New users',
     conditions: 2,
-    description: 'Hold posts and comments from accounts younger than 7 days for manual review.',
+    description: 'Hold posts and comments from accounts younger than 14 days for manual review.',
     tags: ['New users', '2 conditions'],
     rule: {
       type: '',
@@ -37,16 +37,15 @@ const templates = [
     icon: 'tag',
     name: 'Require post flair',
     category: 'Format checks',
-    conditions: 1,
-    description: 'Auto-filter posts that have no flair set and ask the OP to add one before reposting.',
-    tags: ['Format checks', '1 condition'],
+    conditions: 2,
+    description: 'Auto-remove unflaired posts and ask the OP to set one before reposting.',
+    tags: ['Format checks', '2 conditions'],
     rule: {
       type: 'submission',
       action: 'filter',
       action_reason: 'Require post flair',
       report_reason: 'Missing required post flair',
-      'link_flair_text (absent)': true,
-      comment: 'Your post was removed because it is missing a required flair. Please add a flair and resubmit.',
+      'title (includes)': ['[ flair required ]'],
     },
   },
   {
@@ -255,36 +254,59 @@ function notify(type, text, options) {
   state.notification = { type: type, text: text, retryAction: options && options.retryAction };
 }
 
-function customConfirm(message, onConfirm) {
-  var existing = document.getElementById('ams-confirm-overlay');
-  if (existing) existing.remove();
-  var overlay = document.createElement('div');
-  overlay.id = 'ams-confirm-overlay';
-  overlay.innerHTML =
-    '<div class="ams-confirm-backdrop"></div>' +
-    '<div class="ams-confirm-dialog" role="dialog" aria-modal="true">' +
-      '<p class="ams-confirm-msg">' + h(message) + '</p>' +
-      '<div class="ams-confirm-actions">' +
-        '<button class="btn btn-ghost" id="amsConfirmCancel">Cancel</button>' +
-        '<button class="btn btn-primary" id="amsConfirmOk">Confirm</button>' +
-      '</div>' +
-    '</div>';
-  document.body.appendChild(overlay);
-  document.getElementById('amsConfirmOk').addEventListener('click', function() {
-    overlay.remove();
-    onConfirm();
+function appConfirm(options) {
+  return new Promise(function(resolve) {
+    const root = document.getElementById('appConfirm');
+    if (!root) {
+      resolve(false);
+      return;
+    }
+    const titleEl = document.getElementById('appConfirmTitle');
+    const messageEl = document.getElementById('appConfirmMessage');
+    const okBtn = document.getElementById('appConfirmOk');
+    const cancelBtn = document.getElementById('appConfirmCancel');
+    const backdrop = root.querySelector('.app-confirm-backdrop');
+    titleEl.textContent = options.title || 'Confirm';
+    messageEl.textContent = options.message || '';
+    okBtn.textContent = options.confirmLabel || 'Confirm';
+    cancelBtn.textContent = options.cancelLabel || 'Cancel';
+    okBtn.className = 'btn ' + (options.danger ? 'btn-danger' : 'btn-primary');
+    root.hidden = false;
+    root.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('app-confirm-open');
+
+    function finish(value) {
+      root.hidden = true;
+      root.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('app-confirm-open');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      if (backdrop) backdrop.removeEventListener('click', onCancel);
+      document.removeEventListener('keydown', onKeydown);
+      resolve(value);
+    }
+    function onOk() { finish(true); }
+    function onCancel() { finish(false); }
+    function onKeydown(e) {
+      if (e.key === 'Escape') onCancel();
+      else if (e.key === 'Enter') onOk();
+    }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    if (backdrop) backdrop.addEventListener('click', onCancel);
+    document.addEventListener('keydown', onKeydown);
+    cancelBtn.focus();
   });
-  document.getElementById('amsConfirmCancel').addEventListener('click', function() {
-    overlay.remove();
-  });
-  overlay.querySelector('.ams-confirm-backdrop').addEventListener('click', function() {
-    overlay.remove();
-  });
-  document.getElementById('amsConfirmOk').focus();
 }
 
 function confirmUnsavedLeave() {
-  return true;
+  if (!state.dirty) return Promise.resolve(true);
+  return appConfirm({
+    title: 'Unsaved changes',
+    message: 'You have unsaved changes on this device. Leave without deploying? Your draft stays saved locally until you discard it.',
+    confirmLabel: 'Leave',
+    cancelLabel: 'Stay',
+  });
 }
 
 function captureUiState() {
@@ -444,14 +466,14 @@ window.addEventListener('beforeunload', function(e) {
 function bindStaticEvents() {
   document.querySelectorAll('.nav-item[data-view]').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      setView(btn.dataset.view);
+      void setView(btn.dataset.view);
     });
   });
   document.getElementById('themeBtn').addEventListener('click', toggleTheme);
   document.getElementById('sideNavToggle').addEventListener('click', toggleSidebar);
   document.getElementById('newRuleBtn').addEventListener('click', createBlankRule);
-  document.getElementById('deployBtn').addEventListener('click', deployRules);
-  document.getElementById('saveBarBtn').addEventListener('click', deployRules);
+  document.getElementById('deployBtn').addEventListener('click', function() { void deployRules(); });
+  document.getElementById('saveBarBtn').addEventListener('click', function() { void deployRules(); });
   document.getElementById('resetBtn').addEventListener('click', function() {
     clearDraft();
     state.rules = clone(state.serverRules || []);
@@ -465,19 +487,7 @@ function bindStaticEvents() {
   const saveDraftBtn = document.getElementById('saveDraftBtn');
   if (saveDraftBtn) saveDraftBtn.addEventListener('click', saveDraftOnly);
   document.getElementById('reloadBtn').addEventListener('click', function() {
-    function doReload() {
-      clearDraft();
-      state.dirty = false;
-      state.loading = true;
-      state.notification = null;
-      renderShell();
-      requestRules();
-    }
-    if (state.dirty) {
-      customConfirm('Reload from Reddit and discard unsaved changes on this device?', doReload);
-    } else {
-      doReload();
-    }
+    void reloadFromReddit();
   });
 }
 
@@ -701,28 +711,40 @@ function handleDevvitMsg(msg) {
 
 window.handleDevvitMsg = handleDevvitMsg;
 
-function selectBuilderRule(index) {
+async function selectBuilderRule(index) {
   const next = Number(index);
   if (Number.isNaN(next) || next < 0 || next >= state.rules.length) return;
   if (next === state.selected && state.view === 'builder') return;
-  state.sim.inlineResult = null;
   state.selected = next;
-  const rule = state.rules[next];
-  if (rule) {
-    const phrases = getArr(rule, 'body (includes)');
-    if (phrases.length) state.sim.body = phrases[0];
-    else state.sim.body = '';
-  }
   if (state.view === 'builder') {
     renderShell();
     return;
   }
-  setView('builder');
+  await setView('builder');
 }
 
-function setView(view) {
+async function reloadFromReddit() {
+  if (state.dirty) {
+    const ok = await appConfirm({
+      title: 'Reload from Reddit',
+      message: 'Reload from Reddit and discard unsaved changes on this device?',
+      confirmLabel: 'Reload',
+      cancelLabel: 'Cancel',
+      danger: true,
+    });
+    if (!ok) return;
+  }
+  clearDraft();
+  state.dirty = false;
+  state.loading = true;
+  state.notification = null;
+  renderShell();
+  requestRules();
+}
+
+async function setView(view) {
   if (view === state.view) return;
-  if (!confirmUnsavedLeave()) return;
+  if (!(await confirmUnsavedLeave())) return;
   if (view === 'simulator' && state.selected >= 0 && state.rules[state.selected]) {
     const rule = state.rules[state.selected];
     if (!state.sim.body && getArr(rule, 'body (includes)').length) {
@@ -755,8 +777,6 @@ function createBlankRule() {
   state.rules.push(rule);
   state.selected = state.rules.length - 1;
   state.view = 'builder';
-  state.sim.inlineResult = null;
-  state.sim.body = '';
   if (dupIndex >= 0) {
     state.notification = {
       type: 'error',
@@ -790,15 +810,12 @@ function useTemplate(id) {
   state.rules.push(rule);
   state.selected = state.rules.length - 1;
   state.view = 'builder';
-  state.sim.inlineResult = null;
-  const phrases = getArr(rule, 'body (includes)');
-  if (phrases.length) state.sim.body = phrases[0];
   notify('success', 'Template “' + template.name + '” added. Review conditions, then Save rule to update your wiki.');
   markDirty();
   renderShell();
 }
 
-function deployRules() {
+async function deployRules() {
   if (!state.dirty || state.saving) return;
   if (!state.canSave) {
     notify('error', 'You must be signed in as a moderator to save to the subreddit wiki.');
@@ -813,21 +830,53 @@ function deployRules() {
   }
   const sub = formatSubredditLabel(state.subredditName);
   const n = state.rules.length;
-  customConfirm(
-    'Save to ' + sub + ' wiki? This replaces the entire config/automoderator page with ' + n + ' rule' + (n === 1 ? '' : 's') + '. Rules not loaded here will be removed.',
-    function() {
-      const payload = state.rules.map(function(rule) {
-        const copy = clone(rule);
-        delete copy._id;
-        return copy;
-      });
-      state.saving = true;
-      notify('success', 'Saving to Reddit…');
-      updateDirtyState();
-      renderShell();
-      sendToDevvit({ type: 'SAVE', rules: payload });
-    }
-  );
+  const ok = await appConfirm({
+    title: 'Deploy to Reddit',
+    message:
+      'Save to ' + sub + ' wiki?\n\n' +
+      'This replaces the entire config/automoderator page with ' + n + ' rule' + (n === 1 ? '' : 's') + ' from this editor. ' +
+      'Rules that exist on Reddit but are not loaded here will be removed.',
+    confirmLabel: 'Deploy',
+    cancelLabel: 'Cancel',
+    danger: true,
+  });
+  if (!ok) return;
+  const payload = state.rules.map(function(rule) {
+    const copy = clone(rule);
+    delete copy._id;
+    return copy;
+  });
+  state.saving = true;
+  notify('success', 'Saving to Reddit…');
+  updateDirtyState();
+  renderShell();
+  sendToDevvit({ type: 'SAVE', rules: payload });
+}
+
+async function deleteRuleAtIndex(index) {
+  if (Number.isNaN(index) || index < 0 || index >= state.rules.length) return;
+  const name = getRuleName(state.rules[index] || {});
+  const ok = await appConfirm({
+    title: 'Delete rule',
+    message: 'Delete rule “' + name + '”? This cannot be undone until you reload from Reddit without saving.',
+    confirmLabel: 'Delete',
+    cancelLabel: 'Cancel',
+    danger: true,
+  });
+  if (!ok) return;
+  state.rules.splice(index, 1);
+  if (!state.rules.length) {
+    state.selected = -1;
+    state.view = 'rules';
+  } else {
+    state.selected = Math.min(index, state.rules.length - 1);
+  }
+  notify('success', 'Rule removed from this draft. Save rule to apply changes on Reddit.');
+  if (state.view === 'builder' && state.rules.length) {
+    state.ui.focusSelector = '#builder-rule-tab-' + state.selected;
+  }
+  markDirty();
+  renderShell();
 }
 
 function saveDraftOnly() {
@@ -1003,7 +1052,7 @@ function rulesSnapshotToYaml(rules) {
   }).join('\n\n---\n\n');
 }
 
-function restoreHistoryVersion() {
+async function restoreHistoryVersion() {
   const selected = getSelectedHistoryItem();
   const item = selected.item;
   if (!item) return;
@@ -1013,34 +1062,43 @@ function restoreHistoryVersion() {
     return;
   }
   const count = item.rules.length;
-  customConfirm(
-    'Restore “' + item.title + '” (' + count + ' rule' + (count === 1 ? '' : 's') + ') to the editor? Your current draft will be replaced.',
-    function() {
-      state.rules = clone(item.rules);
-      ensureRuleIds(state.rules);
-      state.selected = state.rules.length ? 0 : -1;
-      state.dirty = true;
-      markDirty();
-      notify('success', 'Restored version from ' + formatHistoryTime(item.savedAt) + '. Review and Save rule to update Reddit.');
-      state.view = 'builder';
-      renderShell();
-    }
-  );
+  const ok = await appConfirm({
+    title: 'Restore version',
+    message:
+      'Restore “' + item.title + '” (' + count + ' rule' + (count === 1 ? '' : 's') + ') to the editor?\n\n' +
+      'Your current draft will be replaced. Nothing is sent to Reddit until you Save rule.',
+    confirmLabel: 'Restore',
+    cancelLabel: 'Cancel',
+  });
+  if (!ok) return;
+  state.rules = clone(item.rules);
+  ensureRuleIds(state.rules);
+  state.selected = state.rules.length ? 0 : -1;
+  state.dirty = true;
+  markDirty();
+  notify('success', 'Restored version from ' + formatHistoryTime(item.savedAt) + '. Review and Save rule to update Reddit.');
+  state.view = 'builder';
+  renderShell();
 }
 
-function revertWikiRevision() {
+async function revertWikiRevision() {
   const selected = getSelectedHistoryItem();
   const item = selected.item;
   if (!item || item.source !== 'reddit') return;
-  customConfirm(
-    'Revert config/automoderator on Reddit to this wiki revision? This updates the live wiki immediately.',
-    function() {
-      state.saving = true;
-      notify('success', 'Reverting wiki on Reddit…');
-      renderShell();
-      sendToDevvit({ type: 'REVERT_WIKI', revisionId: item.id });
-    }
-  );
+  const ok = await appConfirm({
+    title: 'Revert on Reddit',
+    message:
+      'Revert config/automoderator on Reddit to this wiki revision?\n\n' +
+      'This updates the live wiki immediately (not just your local editor).',
+    confirmLabel: 'Revert',
+    cancelLabel: 'Cancel',
+    danger: true,
+  });
+  if (!ok) return;
+  state.saving = true;
+  notify('success', 'Reverting wiki on Reddit…');
+  renderShell();
+  sendToDevvit({ type: 'REVERT_WIKI', revisionId: item.id });
 }
 
 function loadDraftFromStorage() {
@@ -1077,11 +1135,9 @@ function hasMatchConditions(rule) {
   if (getArr(rule, 'body (includes)').length) return true;
   if (getArr(rule, 'body (excludes)').length) return true;
   if (getArr(rule, 'title (includes)').length) return true;
-  if (getArr(rule, 'title (regex)').length) return true;
   if (getArr(rule, 'url (includes)').length) return true;
   if (getArr(rule, 'body (regex)').length) return true;
   if (getArr(rule, 'link_flair_text (includes)').length) return true;
-  if (rule['link_flair_text (absent)']) return true;
   if (rule.author && typeof rule.author === 'object' && Object.keys(rule.author).length) return true;
   return false;
 }
@@ -1186,10 +1242,7 @@ function renderShell() {
   }
   document.getElementById('rulesNavCount').textContent = String(state.rules.length);
   const historyNavCount = document.getElementById('historyNavCount');
-  if (historyNavCount) {
-    const total = state.history.length + state.wikiRevisions.length;
-    historyNavCount.textContent = String(total > 0 ? total : state.history.length);
-  }
+  if (historyNavCount) historyNavCount.textContent = String(state.history.length);
   document.querySelectorAll('.nav-item[data-view]').forEach(function(btn) {
     let activeView = state.view;
     if (shouldShowNewUserEmptyState()) activeView = 'rules';
@@ -1217,12 +1270,6 @@ document.addEventListener('click', function(e) {
 function formatSubredditLabel(name) {
   const bare = String(name || '').replace(/^r\//i, '').trim();
   return bare ? 'r/' + bare : 'r/subreddit';
-}
-
-function userInitials() {
-  const name = state.currentUsername || '';
-  if (!name) return '?';
-  return name.slice(0, 2).toUpperCase();
 }
 
 function subredditInitials(name) {
@@ -1277,7 +1324,7 @@ function renderBuilderTopActions() {
     <div class="top-separator" aria-hidden="true"></div>
     <button class="btn btn-ghost icon-btn" title="Notifications">${icon('bell')}</button>
     <button class="btn btn-ghost icon-btn" data-action="toggleTheme" title="Toggle theme">${icon('sun')}</button>
-    <div class="avatar">${userInitials()}</div>
+    <div class="avatar">8M</div>
     <button class="btn btn-primary" id="deployBtn" disabled style="display:none">Deploy</button>
   `;
 }
@@ -1306,7 +1353,7 @@ function renderTopActions(view) {
       <div class="top-separator"></div>
       <button class="btn btn-ghost icon-btn" title="Notifications">${icon('bell')}</button>
       <button class="btn btn-ghost icon-btn" data-action="toggleTheme" title="Toggle theme">${icon('sun')}</button>
-      <div class="avatar">${userInitials()}</div>
+      <div class="avatar">8M</div>
       <button class="btn btn-primary" id="deployBtn" disabled style="display:none">Deploy</button>
     `;
   }
@@ -1319,7 +1366,7 @@ function renderTopActions(view) {
     <div class="top-separator"></div>
     <button class="btn btn-ghost icon-btn" title="Notifications">${icon('bell')}</button>
     <button class="btn btn-ghost icon-btn" data-action="toggleTheme" title="Toggle theme">${icon('sun')}</button>
-    <div class="avatar">${userInitials()}</div>
+    <div class="avatar">8M</div>
     <button class="btn btn-primary" id="deployBtn" disabled style="display:none">Deploy</button>
   `;
 }
@@ -1816,9 +1863,8 @@ function renderAuthorPanel(rule) {
 
 function renderBodyTitlePanel(rule) {
   const regexVal = arr(rule, 'body (regex)');
-  const titleRegexVal = arr(rule, 'title (regex)');
   const hasBody = getArr(rule, 'body (includes)').length || getArr(rule, 'body (excludes)').length
-    || getArr(rule, 'title (includes)').length || getArr(rule, 'title (regex)').length || regexVal;
+    || getArr(rule, 'title (includes)').length || regexVal;
   const body = `
     <div class="condition-grid">
       ${textareaField('Body contains', 'body (includes)', arr(rule, 'body (includes)'), 'bodyIncludes')}
@@ -1826,7 +1872,6 @@ function renderBodyTitlePanel(rule) {
       ${textareaField('Title contains', 'title (includes)', arr(rule, 'title (includes)'), 'titleIncludes')}
     </div>
     ${textareaField('Body regex', 'body (regex)', regexVal, 'bodyRegex')}
-    ${textareaField('Title regex', 'title (regex)', titleRegexVal, 'bodyRegex')}
   `;
   return builderPanel('Body & title', 'Phrases or regex in post/comment text', hasBody, body, 4);
 }
@@ -1838,14 +1883,8 @@ function renderUrlPanel(rule) {
 }
 
 function renderFlairPanel(rule) {
-  const hasFlair = getArr(rule, 'link_flair_text (includes)').length > 0 || Boolean(rule['link_flair_text (absent)']);
-  const body = `
-    ${textareaField('Link flair contains', 'link_flair_text (includes)', arr(rule, 'link_flair_text (includes)'), 'linkFlair')}
-    <label class="toggle-card" style="margin-top:12px">
-      <input type="checkbox" ${rule['link_flair_text (absent)'] ? 'checked' : ''} data-action="setCheckbox" data-key="link_flair_text (absent)">
-      <span><strong>Flair is absent</strong><span>Match posts that have no flair set.</span></span>
-    </label>
-  `;
+  const hasFlair = getArr(rule, 'link_flair_text (includes)').length > 0;
+  const body = textareaField('Link flair contains', 'link_flair_text (includes)', arr(rule, 'link_flair_text (includes)'), 'linkFlair');
   return builderPanel('Flair conditions', 'Match posts with specific flair', hasFlair, body, 6);
 }
 
@@ -2001,11 +2040,10 @@ function renderHistoryDiffVisual(changes, entry) {
     return '<p class="diff-empty-copy">Loading revision content from Reddit…</p>';
   }
   if (!changes.length) {
-    const rc = entry.ruleCount != null ? entry.ruleCount : (entry.rules ? entry.rules.length : 0);
     return `
       <div class="diff-visual diff-visual-neutral">
         <h3>${h(entry.title)} <span class="soft-pill">Snapshot</span></h3>
-        <p class="diff-empty-copy">Full snapshot with ${rc} rule${rc === 1 ? '' : 's'}. No changes compared to the previous entry in this list.</p>
+        <p class="diff-empty-copy">Full snapshot with ${entry.ruleCount} rule${entry.ruleCount === 1 ? '' : 's'}. No changes compared to the previous entry in this list.</p>
       </div>
     `;
   }
@@ -2212,10 +2250,9 @@ document.addEventListener('click', function(e) {
   const el = e.target.closest('[data-action], .nav-item[data-view]');
   if (!el) return;
   const action = el.dataset.action;
-  if (!action && el.dataset.view) { setView(el.dataset.view); return; }
   if (!action) return;
   if (action === 'blank') createBlankRule();
-  if (action === 'deployRules') deployRules();
+  if (action === 'deployRules') void deployRules();
   if (action === 'saveDraft') saveDraftOnly();
   if (action === 'resetDraft') {
     clearDraft();
@@ -2229,37 +2266,20 @@ document.addEventListener('click', function(e) {
     renderShell();
   }
   if (action === 'selectRule') {
-    selectBuilderRule(el.dataset.index);
+    void selectBuilderRule(el.dataset.index);
   }
   if (action === 'useTemplate') useTemplate(el.dataset.template);
-  if (action === 'goTemplates') setView('templates');
-  if (action === 'goRules') setView('rules');
+  if (action === 'goTemplates') void setView('templates');
+  if (action === 'goRules') void setView('rules');
   if (action === 'testRule') scrollToBuilderPanel('#builderTestPanel');
   if (action === 'editRule') {
     state.selected = Number(el.dataset.index);
-    setView('builder');
+    void setView('builder');
   }
   if (action === 'deleteRule') {
-    const index = Number(el.dataset.index);
-    const name = getRuleName(state.rules[index] || {});
-    customConfirm('Delete rule “' + name + '”? This removes it from your draft.', function() {
-      state.rules.splice(index, 1);
-      if (!state.rules.length) {
-        state.selected = -1;
-        state.view = 'rules';
-      } else {
-        state.selected = Math.min(index, state.rules.length - 1);
-      }
-      notify('success', 'Rule removed from this draft. Save rule to apply changes on Reddit.');
-      if (state.view === 'builder' && state.rules.length) {
-        state.ui.focusSelector = '#builder-rule-tab-' + state.selected;
-      }
-      markDirty();
-      renderShell();
-    });
+    void deleteRuleAtIndex(Number(el.dataset.index));
   }
   if (action === 'setSimType') {
-    readSimulatorFields();
     state.sim.contentType = el.dataset.value || 'comment';
     renderShell();
   }
@@ -2296,12 +2316,12 @@ document.addEventListener('click', function(e) {
     if (parsed && parsed.source === 'reddit') loadWikiRevisionContent(parsed.id);
     renderShell();
   }
-  if (action === 'revertWikiRevision') revertWikiRevision();
+  if (action === 'revertWikiRevision') void revertWikiRevision();
   if (action === 'setHistoryDiffTab') {
     state.ui.historyDiffMode = el.dataset.mode === 'yaml' ? 'yaml' : 'visual';
     renderShell();
   }
-  if (action === 'restoreHistoryVersion') restoreHistoryVersion();
+  if (action === 'restoreHistoryVersion') void restoreHistoryVersion();
   if (action === 'setAction') {
     const rule = selectedRule();
     if (!rule) return;
@@ -2393,10 +2413,6 @@ function updateLivePreview() {
   const yaml = document.getElementById('yamlPreview');
   if (summary) summary.textContent = summarizeRule(rule);
   if (yaml) yaml.textContent = toYaml(rule);
-  document.querySelectorAll('.phrase-count[data-countkey]').forEach(function(badge) {
-    const count = getArr(rule, badge.dataset.countkey).length;
-    badge.textContent = count ? count + ' phrase' + (count === 1 ? '' : 's') : '';
-  });
 }
 
 function readSimulatorFields() {
@@ -2440,7 +2456,7 @@ function textareaField(label, key, value, tipKey) {
     <label class="field">
       <div class="field-top">
         ${fieldLabel(label, tipKey)}
-        ${phraseCount ? `<span class="phrase-count" data-countkey="${h(key)}">${phraseCount} phrase${phraseCount === 1 ? '' : 's'}</span>` : `<span class="phrase-count" data-countkey="${h(key)}"></span>`}
+        ${phraseCount ? `<span class="phrase-count">${phraseCount} phrase${phraseCount === 1 ? '' : 's'}</span>` : ''}
       </div>
       <textarea class="textarea mono" data-action="setArrayField" data-key="${h(key)}" placeholder="${h(ph)}">${h(value)}</textarea>
       ${fieldHint(tipKey)}
@@ -2510,11 +2526,11 @@ function summarizeRule(rule) {
 
 function countRuleConditions(rule) {
   let count = 0;
-  ['body (includes)', 'body (excludes)', 'title (includes)', 'title (regex)', 'url (includes)', 'body (regex)', 'link_flair_text (includes)'].forEach(function(key) {
+  ['body (includes)', 'body (excludes)', 'title (includes)', 'url (includes)', 'body (regex)', 'link_flair_text (includes)'].forEach(function(key) {
     if (getArr(rule, key).length) count += 1;
   });
-  if (rule['link_flair_text (absent)']) count += 1;
   if (rule.author && typeof rule.author === 'object') count += Object.keys(rule.author).length;
+  if (rule.set_flair) count += 1;
   return count;
 }
 
@@ -2538,7 +2554,6 @@ function evaluateRuleMatch(rule, contentType, title, body, url, index) {
   checkIncludes(getArr(rule, 'body (includes)'), bodyLow, 'Body', reasons, function() { fires = false; });
   checkExcludes(getArr(rule, 'body (excludes)'), bodyLow, 'Body', reasons, function() { fires = false; });
   checkIncludes(getArr(rule, 'title (includes)'), titleLow, 'Title', reasons, function() { fires = false; });
-  checkRegex(getArr(rule, 'title (regex)'), title || '', 'Title', reasons, function() { fires = false; });
   checkIncludes(getArr(rule, 'url (includes)'), urlLow, 'URL', reasons, function() { fires = false; });
   checkRegex(getArr(rule, 'body (regex)'), body || '', 'Body', reasons, function() { fires = false; });
 
@@ -2547,12 +2562,6 @@ function evaluateRuleMatch(rule, contentType, title, body, url, index) {
     Object.keys(author).forEach(function(key) {
       reasons.push({ status: 'skip', text: 'Author ' + key.replace(/_/g, ' ') + ' requires Reddit account data' });
     });
-  }
-  if (getArr(rule, 'link_flair_text (includes)').length) {
-    reasons.push({ status: 'skip', text: 'Flair condition requires post data — verify manually' });
-  }
-  if (rule['link_flair_text (absent)']) {
-    reasons.push({ status: 'skip', text: 'Flair absent condition requires post data — verify manually' });
   }
   if (!reasons.length) reasons.push({ status: 'pass', text: 'No conditions, matches all content' });
   return { index: index, fires: fires, action: rule.action, reasons: reasons };
@@ -2611,7 +2620,6 @@ function arr(rule, key) {
 function toYaml(obj) {
   const lines = [];
   Object.keys(obj).forEach(function(key) {
-    if (key === '_id') return;
     const value = obj[key];
     if (value === undefined || value === null || value === '') return;
     const safeKey = yamlKey(key);

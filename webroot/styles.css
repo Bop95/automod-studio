@@ -45,8 +45,8 @@
       --input: var(--slate-200);
       --ring: var(--brand-500);
 
-      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       /* Type scale: body 400, UI 500, headings 600 — avoid 700+ except rare emphasis */
       --fw-normal: 400;
       --fw-medium: 500;
@@ -2334,9 +2334,46 @@
       .save-bar { left: 50%; width: calc(100vw - 28px); justify-content: space-between; }
     }
 
-/* Custom confirm dialog */
-#ams-confirm-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; }
-.ams-confirm-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
-.ams-confirm-dialog { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 28px 24px 20px; width: 360px; max-width: calc(100vw - 40px); box-shadow: 0 20px 48px rgba(0,0,0,0.22); z-index: 1; }
-.ams-confirm-msg { font-size: 14px; color: var(--foreground); line-height: 1.6; margin: 0 0 20px; }
-.ams-confirm-actions { display: flex; gap: 10px; justify-content: center; }
+    .app-confirm {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-4);
+    }
+    .app-confirm[hidden] { display: none !important; }
+    .app-confirm-backdrop {
+      position: absolute;
+      inset: 0;
+      background: color-mix(in srgb, var(--slate-950) 48%, transparent);
+    }
+    .app-confirm-panel {
+      position: relative;
+      width: min(440px, 100%);
+      background: var(--card);
+      color: var(--card-foreground);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: 0 24px 48px color-mix(in srgb, var(--slate-950) 18%, transparent);
+      padding: var(--space-5);
+    }
+    .app-confirm-title {
+      margin: 0 0 var(--space-2);
+      font-size: 18px;
+      font-weight: var(--fw-semibold);
+    }
+    .app-confirm-message {
+      margin: 0 0 var(--space-5);
+      color: var(--muted-foreground);
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
+    .app-confirm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-2);
+    }
+    body.app-confirm-open { overflow: hidden; }
